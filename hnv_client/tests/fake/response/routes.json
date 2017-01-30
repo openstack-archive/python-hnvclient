@@ -1,0 +1,44 @@
+{
+    "value": [
+        {
+            "resourceId": "{uniqueString}",
+            "instanceId": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+            "tags": {
+                "key": "value"
+            },
+            "resourceMetadata": {
+                "client": "WAP Network Resource Provider",
+                "tenantId": "{subscriptionid}",
+                "groupId": "{groupname}",
+                "name": "{name}",
+                "originalHref": "https://..."
+            },
+            "properties": {
+                "provisioningState": "Updating|Deleting|Failed|Succeeded",
+                "addressPrefix": "10.0.0.0/24",
+                "nextHopType": "VirtualAppliance",
+                "nextHopIpAddress": "11.0.0.5"
+            }
+        },
+        {
+            "resourceId": "{uniqueString}",
+            "instanceId": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+            "tags": {
+                "key": "value"
+            },
+            "resourceMetadata": {
+                "client": "WAP Network Resource Provider",
+                "tenantId": "{subscriptionid}",
+                "groupId": "{groupname}",
+                "name": "{name}",
+                "originalHref": "https://..."
+            },
+            "properties": {
+                "provisioningState": "Updating|Deleting|Failed|Succeeded",
+                "addressPrefix": "11.11.0.0/16",
+                "nextHopType": "VirtualAppliance",
+                "nextHopIpAddress": "11.12.5.5"
+            }
+        }
+    ]
+}

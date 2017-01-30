@@ -73,3 +73,11 @@ class FakeResponse(object):
     def virtual_switch_manager(self):
         """Fake GET response for virtual switch manager."""
         return self._load_resource("virtual_switch_manager.json")
+
+    def routes(self):
+        """Fake GET(all) response for routes."""
+        return self._load_resource("routes.json")
+
+    def route_tables(self):
+        """Fake GET(all) response for route tables."""
+        return self._load_resource("route_tables.json")
