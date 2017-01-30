@@ -51,6 +51,13 @@ class HNVException(Exception):
         super(HNVException, self).__init__(message)
 
 
+class DataProcessingError(HNVException):
+
+    """Base exception class for data processing related errors."""
+
+    template = "The provided information is incomplete or invalid."
+
+
 class NotFound(HNVException):
 
     """The required object is not available in container."""
