@@ -45,3 +45,11 @@ class FakeResponse(object):
     def ip_pools(self):
         """Fake GET(all) response for IP pools."""
         return self._load_resource("ip_pools.json")
+
+    def network_interfaces(self):
+        """Fake GET(all) response for network interfaces."""
+        return self._load_resource("network_interfaces.json")
+
+    def ip_configurations(self):
+        """Fake GET(all) response for ip configurations."""
+        return self._load_resource("ip_configurations.json")
