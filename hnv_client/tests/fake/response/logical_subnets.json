@@ -1,0 +1,68 @@
+{
+    "value": [
+        {
+            "resourceId": "{uniqueString}",
+            "etag": "00000000-0000-0000-0000-000000000000",
+            "instanceId": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+            "tags": {
+                "key": "value"
+            },
+            "resourceMetadata": {
+                "client": "<Insert likely client>",
+                "tenantId": "{subscriptionid}",
+                "groupId": "{groupname}",
+                "name": "{name}",
+                "originalHref": "https://..."
+            },
+            "properties": {
+                "provisioningState": "Updating",
+                "ipConfigurations": [],
+                "networkInterfaces": [],
+                "vlanID": "1",
+                "routes": [],
+                "dnsServers": [
+                    "10.0.0.1",
+                    "10.0.0.2"
+                ],
+                "defaultGateways": [
+                    "192.168.1.1",
+                    "192.168.1.2"
+                ],
+                "isPublic": true,
+                "ipPools": []
+            }
+        },
+        {
+            "resourceId": "{uniqueString}",
+            "etag": "00000000-0000-0000-0000-000000000000",
+            "instanceId": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+            "tags": {
+                "key": "value"
+            },
+            "resourceMetadata": {
+                "client": "<Insert likely client>",
+                "tenantId": "{subscriptionid}",
+                "groupId": "{groupname}",
+                "name": "{name}",
+                "originalHref": "https://..."
+            },
+            "properties": {
+                "provisioningState": "Succeeded",
+                "ipConfigurations": [],
+                "networkInterfaces": [],
+                "vlanID": "1",
+                "routes": [],
+                "dnsServers": [
+                    "10.0.0.1",
+                    "10.0.0.2"
+                ],
+                "defaultGateways": [
+                    "192.168.1.1",
+                    "192.168.1.2"
+                ],
+                "isPublic": true,
+                "ipPools": []
+            }
+        }
+    ]
+}

@@ -44,6 +44,23 @@ class _BaseHNVModel(model.Model):
     the context of the resource if it is a top-level resource, or in the
     context of the direct parent resource if it is a child resource."""
 
+    parent_id = model.Field(name="parent_id",
+                            key="parentResourceID",
+                            is_property=False, is_required=False,
+                            is_read_only=True)
+    """The parent resource ID field contains the resource ID that is
+    associated with network objects that are ancestors of the necessary
+    resource.
+    """
+
+    grandparent_id = model.Field(name="grandparent_id",
+                                 key="grandParentResourceID",
+                                 is_property=False, is_required=False,
+                                 is_read_only=True)
+    """The grand parent resource ID field contains the resource ID that
+    is associated with network objects that are ancestors of the parent
+    of the necessary resource."""
+
     instance_id = model.Field(name="instance_id", key="instanceId",
                               is_property=False)
     """The globally unique Id generated and used internally by the Network
@@ -63,10 +80,6 @@ class _BaseHNVModel(model.Model):
     """Indicates the various states of the resource. Valid values are
     Deleting, Failed, Succeeded, and Updating."""
 
-    def __init__(self, **fields):
-        self._parent_id = fields.pop("parent_id", None)
-        super(_BaseHNVModel, self).__init__(**fields)
-
     @staticmethod
     def _get_client():
         """Create a new client for the HNV REST API."""
@@ -75,11 +88,6 @@ class _BaseHNVModel(model.Model):
                                 password=CONFIG.HNV.password,
                                 allow_insecure=CONFIG.HNV.https_allow_insecure,
                                 ca_bundle=CONFIG.HNV.https_ca_bundle)
-
-    @property
-    def parent_id(self):
-        """The identifier for the specific ancestor resource."""
-        return self._parent_id
 
     @classmethod
     def get(cls, resource_id=None, parent_id=None):
@@ -187,3 +195,178 @@ class _BaseHNVModel(model.Model):
         self._set_fields(fields)
         # Lock the current model
         self._provision_done = True
+
+
+class Resource(model.Model):
+
+    """Model for the resource references."""
+
+    resource_ref = model.Field(name="resource_ref", key="resourceRef",
+                               is_property=False, is_required=True)
+    """A relative URI to an associated resource."""
+
+
+class IPPools(_BaseHNVModel):
+
+    """Model for IP Pools.
+
+    The ipPools resource represents the range of IP addresses from which IP
+    addresses will be allocated for nodes within a subnet. The subnet is a
+    logical or physical subnet inside a logical network.
+
+    The ipPools for a virtual subnet are implicit. The start and end IP
+    addresses of the pool of the virtual subnet is based on the IP prefix
+    of the virtual subnet.
+    """
+
+    _endpoint = ("/networking/v1/logicalNetworks/{grandparent_id}"
+                 "/logicalSubnets/{parent_id}/ipPools/{resource_id}")
+
+    parent_id = model.Field(name="parent_id",
+                            key="parentResourceID",
+                            is_property=False, is_required=True,
+                            is_read_only=True)
+    """The parent resource ID field contains the resource ID that is
+    associated with network objects that are ancestors of the necessary
+    resource.
+    """
+
+    grandparent_id = model.Field(name="grandparent_id",
+                                 key="grandParentResourceID",
+                                 is_property=False, is_required=True,
+                                 is_read_only=True)
+    """The grand parent resource ID field contains the resource ID that
+    is associated with network objects that are ancestors of the parent
+    of the necessary resource."""
+
+    start_ip_address = model.Field(name="start_ip_address",
+                                   key="startIpAddress",
+                                   is_required=True, is_read_only=False)
+    """Start IP address of the pool.
+    Note: This is an inclusive value so it is a valid IP address from
+    this pool."""
+
+    end_ip_address = model.Field(name="end_ip_address", key="endIpAddress",
+                                 is_required=True, is_read_only=False)
+    """End IP address of the pool.
+    Note: This is an inclusive value so it is a valid IP address from
+    this pool."""
+
+    usage = model.Field(name="usage", key="usage",
+                        is_required=False, is_read_only=True)
+    """Statistics of the usage of the IP pool."""
+
+
+class LogicalSubnetworks(_BaseHNVModel):
+
+    """Logical subnetworks model.
+
+    The logicalSubnets resource consists of a subnet/VLAN pair.
+    The vlan resource is required; however it MAY contain a value of zero
+    if the subnet is not associated with a vlan.
+    """
+
+    _endpoint = ("/networking/v1/logicalNetworks/{parent_id}"
+                 "/logicalSubnets/{resource_id}")
+
+    parent_id = model.Field(name="parent_id",
+                            key="parentResourceID",
+                            is_property=False, is_required=True,
+                            is_read_only=True)
+    """The parent resource ID field contains the resource ID that is
+    associated with network objects that are ancestors of the necessary
+    resource.
+    """
+
+    address_prefix = model.Field(name="address_prefix", key="addressPrefix")
+    """Identifies the subnet id in form of ipAddresss/prefixlength."""
+
+    vlan_id = model.Field(name="vlan_id", key="vlanId", is_required=True,
+                          default=0)
+    """Indicates the VLAN ID associated with the logical subnet."""
+
+    routes = model.Field(name="routes", key="routes", is_required=False)
+    """Indicates the routes that are contained in the logical subnet."""
+
+    ip_pools = model.Field(name="ip_pools", key="ipPools",
+                           is_required=False)
+    """Indicates the IP Pools that are contained in the logical subnet."""
+
+    dns_servers = model.Field(name="dns_servers", key="dnsServers",
+                              is_required=False)
+    """Indicates one or more DNS servers that are used for resolving DNS
+    queries by devices or host connected to this logical subnet."""
+
+    network_interfaces = model.Field(name="network_interfaces",
+                                     key="networkInterfaces",
+                                     is_read_only=True)
+    """Indicates an array of references to networkInterfaces resources
+    that are attached to the logical subnet."""
+
+    is_public = model.Field(name="is_public", key="isPublic")
+    """Boolean flag specifying whether the logical subnet is a
+    public subnet."""
+
+    default_gateways = model.Field(name="default_gateways",
+                                   key="defaultGateways")
+    """A collection of one or more gateways for the subnet."""
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        ip_pools = []
+        properties = raw_data["properties"]
+        for raw_ip_pool in properties.get("ipPools", []):
+            raw_ip_pool["parentResourceID"] = raw_data["resourceId"]
+            raw_ip_pool["grandParentResourceID"] = raw_data["parentResourceID"]
+            ip_pools.append(IPPools.from_raw_data(raw_ip_pool))
+        properties["ipPools"] = ip_pools
+
+        return super(LogicalSubnetworks, cls).from_raw_data(raw_data)
+
+
+class LogicalNetworks(_BaseHNVModel):
+
+    """Logical networks model.
+
+    The logicalNetworks resource represents a logical partition of physical
+    network that is dedicated for a specific purpose.
+    A logical network comprises of a collection of logical subnets.
+    """
+
+    _endpoint = "/networking/v1/logicalNetworks/{resource_id}"
+
+    subnetworks = model.Field(name="subnetworks", key="subnets",
+                              is_required=False, default=[])
+    """Indicates the subnets that are contained in the logical network."""
+
+    network_virtualization_enabled = model.Field(
+        name="network_virtualization_enabled",
+        key="networkVirtualizationEnabled", default=False, is_required=False)
+    """Indicates if the network is enabled to be the Provider Address network
+    for one or more virtual networks. Valid values are `True` or `False`.
+    The default is `False`."""
+
+    virtual_networks = model.Field(name="virtual_networks",
+                                   key="virtualNetworks",
+                                   is_read_only=True)
+    """Indicates an array of virtualNetwork resources that are using
+    the network."""
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data["properties"]
+
+        subnetworks = []
+        for raw_subnet in properties.get("subnets", []):
+            raw_subnet["parentResourceID"] = raw_data["resourceId"]
+            subnetworks.append(LogicalSubnetworks.from_raw_data(raw_subnet))
+        properties["subnets"] = subnetworks
+
+        virtual_networks = []
+        for raw_network in properties.get("virtualNetworks", []):
+            virtual_networks.append(Resource.from_raw_data(raw_network))
+        properties["virtualNetworks"] = virtual_networks
+
+        return super(LogicalNetworks, cls).from_raw_data(raw_data)
