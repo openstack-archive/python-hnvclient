@@ -69,3 +69,7 @@ class FakeResponse(object):
     def acl(self):
         """Fake GET(all) response for ACL."""
         return self._load_resource("acl.json")
+
+    def virtual_switch_manager(self):
+        """Fake GET response for virtual switch manager."""
+        return self._load_resource("virtual_switch_manager.json")

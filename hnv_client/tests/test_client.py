@@ -270,3 +270,8 @@ class TestClient(unittest.TestCase):
 
         for acl_rule in acl.acl_rules:
             self.assertIsInstance(acl_rule, client.ACLRules)
+
+    def test_virtual_switch_manager(self):
+        raw_data = self._response.virtual_switch_manager()
+        self._test_get_resource(model=client.VirtualSwitchManager,
+                                raw_data=raw_data)
