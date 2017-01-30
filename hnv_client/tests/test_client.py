@@ -239,3 +239,15 @@ class TestClient(unittest.TestCase):
         for raw_data in resources.get("value", []):
             self._test_get_resource(model=client.IPConfiguration,
                                     raw_data=raw_data)
+
+    def test_virtual_networks(self):
+        resources = self._response.virtual_networks()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.VirtualNetworks,
+                                    raw_data=raw_data)
+
+    def test_virtual_subnetworks(self):
+        resources = self._response.virtual_subnetworks()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.SubNetworks,
+                                    raw_data=raw_data)

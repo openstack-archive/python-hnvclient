@@ -738,3 +738,135 @@ class NetworkInterfaces(_BaseHNVModel):
         properties["configurationState"] = configuration
 
         return super(NetworkInterfaces, cls).from_raw_data(raw_data)
+
+
+class SubNetworks(_BaseHNVModel):
+
+    """SubNetwork Model.
+
+    The subnets resource is used to create Virtual Subnets (VSIDs) under
+    a tenant's virtual network (RDID). The user can specify the addressPrefix
+    to use for the subnets, the accessControl Lists to protect the subnets,
+    the routeTable to be applied to the subnet, and optionally the service
+    insertion to use within the subnet.
+    """
+
+    _endpoint = ("/networking/v1/virtualNetworks/{parent_id}"
+                 "/subnets/{resource_id}")
+
+    parent_id = model.Field(name="parent_id",
+                            key="parentResourceID",
+                            is_property=False, is_required=True,
+                            is_read_only=True)
+    """The parent resource ID field contains the resource ID that is
+    associated with network objects that are ancestors of the necessary
+    resource.
+    """
+
+    address_prefix = model.Field(name="address_prefix", key="addressPrefix",
+                                 is_required=True)
+    """Indicates the address prefix that defines the subnet. The value is
+    in the format of 0.0.0.0/0. This value must not overlap with other
+    subnets in the virtual network and must fall in the addressPrefix defined
+    in the virtual network."""
+
+    access_controll_list = model.Field(name="access_controll_list",
+                                       key="accessControlList",
+                                       is_required=False)
+    """Indicates a reference to an accessControlLists resource that defines
+    the ACLs in and out of the subnet."""
+
+    service_insertion = model.Field(name="service_insertion",
+                                    key="serviceInsertion",
+                                    is_required=False)
+    """Indicates a reference to a serviceInsertions resource that defines the
+    service insertion to be applied to the subnet."""
+
+    route_table = model.Field(name="route_table", key="routeTable",
+                              is_required=False)
+    """Indicates a reference to a routeTable resource that defines the tenant
+    routes to be applied to the subnet."""
+
+    ip_configuration = model.Field(name="ip_configuration",
+                                   key="ipConfigurations",
+                                   is_read_only=False)
+    """Indicates an array of references of networkInterfaces resources that
+    are connected to the subnet."""
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data["properties"]
+
+        ip_configurations = []
+        for raw_config in properties.get("ipConfigurations", []):
+            ip_configurations.append(IPConfiguration.from_raw_data(raw_config))
+        properties["ipConfigurations"] = ip_configurations
+
+        acl = properties.get("accessControlList")
+        if acl:
+            properties["accessControlList"] = Resource.from_raw_data(acl)
+
+        return super(SubNetworks, cls).from_raw_data(raw_data)
+
+
+class VirtualNetworks(_BaseHNVModel):
+
+    """Virtual Network Model.
+
+    This resource is used to create a virtual network using HNV for tenant
+    overlays. The default encapsulation for virtualNetworks is Virtual
+    Extensible LAN but this can be changed by updating the virtual
+    NetworkManager resource. Similarly, the HNV Distributed Router is enabled
+    by default but this can be overridden using the virtualNetworkManager
+    resource.
+    """
+
+    _endpoint = "/networking/v1/virtualNetworks/{resource_id}"
+
+    configuration_state = model.Field(name="configuration_state",
+                                      key="configurationState",
+                                      is_read_only=True)
+    """Indicates the last known running state of this resource."""
+
+    address_space = model.Field(name="address_space",
+                                key="addressSpace",
+                                is_required=True)
+    """Indicates the address space of the virtual network."""
+
+    dhcp_options = model.Field(name="dhcp_options", key="dhcpOptions",
+                               is_required=False)
+    """Indicates the DHCP options used by servers in the virtual
+    network."""
+
+    subnetworks = model.Field(name="subnetworks", key="subnets",
+                              is_required=False)
+    """Indicates the subnets that are on the virtual network."""
+
+    logical_network = model.Field(name="logical_network",
+                                  key="logicalNetwork",
+                                  is_required=True)
+    """Indicates a reference to the networks resource that is the
+    underlay network which the virtual network runs on."""
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data["properties"]
+
+        subnetworks = []
+        for raw_subnet in properties.get("subnets", []):
+            raw_subnet["parentResourceID"] = raw_data["resourceId"]
+            subnetworks.append(SubNetworks.from_raw_data(raw_subnet))
+        properties["subnets"] = subnetworks
+
+        raw_network = properties.get("logicalNetwork")
+        if raw_network:
+            properties["logicalNetwork"] = Resource.from_raw_data(raw_network)
+
+        raw_config = properties.get("configurationState")
+        if raw_config:
+            config = ConfigurationState.from_raw_data(raw_config)
+            properties["configurationState"] = config
+
+        return super(VirtualNetworks, cls).from_raw_data(raw_data)

@@ -53,3 +53,11 @@ class FakeResponse(object):
     def ip_configurations(self):
         """Fake GET(all) response for ip configurations."""
         return self._load_resource("ip_configurations.json")
+
+    def virtual_networks(self):
+        """Fake GET(all) response for virtual networks."""
+        return self._load_resource("virtual_networks.json")
+
+    def virtual_subnetworks(self):
+        """Fake GET(all) response for virtual subnetworks."""
+        return self._load_resource("virtual_subnetworks.json")
