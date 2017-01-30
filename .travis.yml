@@ -1,0 +1,9 @@
+# Config file for automatic testing at travis-ci.org
+sudo: false
+language: python
+install: pip install tox
+script: tox
+env:
+  - TOXENV=py27
+  - TOXENV=pep8
+  - TOXENV=pylint
