@@ -1,0 +1,59 @@
+{
+    "value": [
+        {
+            "resourceRef": "/accessControlLists/049460a0-3d29-48a5-92fe-1b418287f2a1/aclRules/1d62b477-9992-400b-bfbb-411c8c91ed9d",
+            "resourceId": "1d62b477-9992-400b-bfbb-411c8c91ed9d",
+            "etag": "W/\"736b0e54-7976-42fd-a89e-c7d00e9fbcf0\"",
+            "instanceId": "985c5ee5-e275-4006-8cba-5fd704ef4c62",
+            "properties": {
+                "provisioningState": "Succeeded",
+                "protocol": "All",
+                "sourcePortRange": "0-65535",
+                "destinationPortRange": "31267",
+                "action": "Allow",
+                "sourceAddressPrefix": "*",
+                "destinationAddressPrefix": "20.169.0.22",
+                "priority": "200",
+                "type": "Inbound",
+                "logging": "Enabled"
+            }
+        },
+        {
+            "resourceRef": "/accessControlLists/049460a0-3d29-48a5-92fe-1b418287f2a1/aclRules/1d62b477-9992-400b-bfbb-411c8c91ed9",
+            "resourceId": "1d62b477-9992-400b-bfbb-411c8c91ed9",
+            "etag": "W/\"736b0e54-7976-42fd-a89e-c7d00e9fbcf0\"",
+            "instanceId": "985c5ee5-e275-4006-8cba-5fd704ef4c62",
+            "properties": {
+                "provisioningState": "Succeeded",
+                "protocol": "All",
+                "sourcePortRange": "0-65535",
+                "destinationPortRange": "31267",
+                "action": "Allow",
+                "sourceAddressPrefix": "*",
+                "destinationAddressPrefix": "20.169.0.22",
+                "priority": "200",
+                "type": "Inbound",
+                "logging": "Enabled"
+            }
+        },
+        {
+            "resourceRef": "/accessControlLists/049460a0-3d29-48a5-92fe-1b418287f2a1/aclRules/1d62b477-9992-400b-bfbb-411c8c91ed9d",
+            "resourceId": "1d62b477-9992-400b-bfbb-411c8c91ed9d",
+            "etag": "W/\"736b0e54-7976-42fd-a89e-c7d00e9fbcf0\"",
+            "instanceId": "985c5ee5-e275-4006-8cba-5fd704ef4c62",
+            "properties": {
+                "provisioningState": "Succeeded",
+                "protocol": "All",
+                "sourcePortRange": "0-65535",
+                "destinationPortRange": "31267",
+                "action": "Allow",
+                "sourceAddressPrefix": "*",
+                "destinationAddressPrefix": "20.169.0.22",
+                "priority": "200",
+                "type": "Inbound",
+                "logging": "Enabled"
+            }
+        }
+    ],
+    "nextLink": ""
+}

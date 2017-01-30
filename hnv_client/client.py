@@ -870,3 +870,151 @@ class VirtualNetworks(_BaseHNVModel):
             properties["configurationState"] = config
 
         return super(VirtualNetworks, cls).from_raw_data(raw_data)
+
+
+class ACLRules(_BaseHNVModel):
+
+    """ACL Rules Model.
+
+    The aclRules resource describes the network traffic that is allowed
+    or denied for a network interface of a virtual machine. Currently,
+    only inbound rules are expressed.
+    """
+
+    _endpoint = ("/networking/v1/accessControlLists/{parent_id}"
+                 "/aclRules/{resource_id}")
+
+    parent_id = model.Field(name="parent_id",
+                            key="parentResourceID",
+                            is_property=False, is_required=True,
+                            is_read_only=True)
+    """The parent resource ID field contains the resource ID that is
+    associated with network objects that are ancestors of the necessary
+    resource.
+    """
+
+    action = model.Field(name="action", key="action")
+    """Indicates the action the ACL Rule will take. Valid values
+    are: `Allow` and `Deny`."""
+
+    destination_prefix = model.Field(name="destination_prefix",
+                                     key="destinationAddressPrefix")
+    """Indicates the CIDR value of destination IP or a pre-defined tag
+    to which traffic is destined. You can specify 0.0.0.0/0 for IPv4
+    all and ::/0 for IPv6 all traffic."""
+
+    destination_port_range = model.Field(name="destination_port_range",
+                                         key="destinationPortRange")
+    """Indicates the destination port(s) that will trigger this ACL
+    rule. Valid values include a single port, port range (separated by "-"),
+    or "*" for all ports. All numbers are inclusive."""
+
+    source_prefix = model.Field(name="source_prefix",
+                                key="sourceAddressPrefix")
+    """Indicates the CIDR value of source IP or a pre-defined TAG from
+    which traffic is originating. You can specify 0.0.0.0/0 for IPv4 all
+    and ::/0 forIPv6 all traffic."""
+
+    source_port_range = model.Field(name="source_port_range",
+                                    key="sourcePortRange")
+    """Indicates the source port(s) that will trigger this ACL rule.
+    Valid values include a single port, port range (separated by "-"),
+    or "*" for all ports. All numbers are inclusive."""
+
+    description = model.Field(name="description", key="description")
+    """Indicates a description of the ACL rule."""
+
+    logging = model.Field(name="logging", key="logging",
+                          default="Enabled")
+    """Indicates whether logging will be turned on for when this
+    rule gets triggered. Valid values are `Enabled` or `Disabled`."""
+
+    priority = model.Field(name="priority", key="priority")
+    """Indicates the priority of the rule relative to the priority of
+    other ACL rules. This is a unique numeric value in the context of
+    an accessControlLists resource. Value from 101 - 65000 are user
+    defined. Values 1 - 100 and 65001 - 65535 are reserved."""
+
+    protocol = model.Field(name="protocol", key="protocol")
+    """Indicates the protocol to which the ACL rule will apply.
+    Valid values are `TCP` or `UDP`."""
+
+    rule_type = model.Field(name="rule_type", key="type")
+    """Indicates whether the rule is to be evaluated against ingress
+    traffic (Inbound) or egress traffic (Outbound). Valid values are
+    `Inbound` or `Outbound`."""
+
+
+class AccessControlLists(_BaseHNVModel):
+
+    """Access Constrol List Model.
+
+    An accessControlLists resource contains a list of ACL rules.
+    Access control list resources can be assigned to virtual subnets
+    or IP configurations.
+
+    An ACL can be associated with:
+        * Subnets of a virtual or logical network. This means that all
+        network interfaces (NICs) with IP configurations created in the
+        subnet inherit the ACL rules in the Access Control List. Often,
+        subnets are used for a specific architectural tier (frontend,
+        middle tier, backend) in more complex applications. Assigning
+        an ACL to subnets can thus be used to control the network flow
+        between the different tiers.
+        *IP configuration of a NIC. This means that the ACL will be
+        applied to the parent network interface of the specified IP
+        configuration.
+    """
+
+    _endpoint = "/networking/v1/accessControlLists/{resource_id}"
+
+    configuration_state = model.Field(name="configuration_state",
+                                      key="configurationState",
+                                      is_read_only=True)
+    """Indicates the last known running state of this resource."""
+
+    acl_rules = model.Field(name="acl_rules", key="aclRules")
+    """Indicates the rules in an access control list."""
+
+    inbound_action = model.Field(name="inbound_action",
+                                 key="inboundDefaultAction",
+                                 default="Permit")
+    """Indicates the default action for Inbound Rules. Valid values are
+    `Permit` and `Deny`. The default value is `Permit`."""
+
+    outbound_action = model.Field(name="outbound_action",
+                                  key="outboundDefaultAction",
+                                  default="Permit")
+    """Indicates the default action for Outbound Rules. Valid values are
+    `Permit` and `Deny`. The default value is `Permit`."""
+
+    ip_configuration = model.Field(name="ip_configuration",
+                                   key="ipConfigurations")
+    """Indicates references to IP addresses of network interfaces
+    resources this access control list is associated with."""
+
+    subnets = model.Field(name="subnets", key="subnets")
+    """Indicates an array of references to subnets resources this access
+    control list is associated with."""
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data["properties"]
+
+        subnetworks = []
+        for raw_subnet in properties.get("subnets", []):
+            subnetworks.append(Resource.from_raw_data(raw_subnet))
+        properties["subnets"] = subnetworks
+
+        acl_rules = []
+        for raw_rule in properties.get("aclRules", []):
+            raw_rule["parentResourceID"] = raw_data["resourceId"]
+            acl_rules.append(ACLRules.from_raw_data(raw_rule))
+        properties["aclRules"] = acl_rules
+
+        raw_state = properties.get("configurationState", {})
+        configuration = ConfigurationState.from_raw_data(raw_state)
+        properties["configurationState"] = configuration
+
+        return super(AccessControlLists, cls).from_raw_data(raw_data)

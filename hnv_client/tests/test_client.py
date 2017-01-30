@@ -251,3 +251,22 @@ class TestClient(unittest.TestCase):
         for raw_data in resources.get("value", []):
             self._test_get_resource(model=client.SubNetworks,
                                     raw_data=raw_data)
+
+    def test_acl_rules(self):
+        resources = self._response.acl_rules()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.ACLRules,
+                                    raw_data=raw_data)
+
+    def test_acl(self):
+        resources = self._response.acl()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.AccessControlLists,
+                                    raw_data=raw_data)
+
+    def test_acl_structure(self):
+        raw_data = self._response.acl()["value"][0]
+        acl = client.AccessControlLists.from_raw_data(raw_data)
+
+        for acl_rule in acl.acl_rules:
+            self.assertIsInstance(acl_rule, client.ACLRules)
