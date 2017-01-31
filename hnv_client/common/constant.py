@@ -13,3 +13,22 @@
 #    under the License.
 
 """Shared constants across the bcbio-nextgen-vm project."""
+
+GET = "GET"
+POST = "POST"
+PUT = "PUT"
+PATCH = "PATCH"
+DELETE = "DELETE"
+
+DELETING = "Deleting"
+FAILED = "Failed"
+SUCCEEDED = "Succeeded"
+UPDATING = "Updating"
+
+ABSOLUTE = "absolute"
+WEIGHT = "weight"
+
+VIRTUAL_APPLIANCE = "VirtualAppliance"
+VNET_LOCAL = "VnetLocal"
+VIRTUAL_NETWORK_GATEWAY = "VirtualNetworkGateway"
+INTERNET = "Internet"

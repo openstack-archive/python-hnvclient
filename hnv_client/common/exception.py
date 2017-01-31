@@ -58,15 +58,41 @@ class DataProcessingError(HNVException):
     template = "The provided information is incomplete or invalid."
 
 
-class NotFound(HNVException):
+class ServiceException(HNVException):
+
+    """Base exception for all the API interaction related errors."""
+
+    template = "Something went wrong."
+
+
+class TimeOut(ServiceException):
+
+    """The request timed out."""
+
+    template = "The request timed out."
+
+
+class NotFound(ServiceException):
 
     """The required object is not available in container."""
 
     template = "The %(object)r was not found in %(container)s."
 
 
-class NotSupported(HNVException):
+class CertificateVerifyFailed(ServiceException):
+
+    """The received certificate is not valid.
+
+    In order to avoid the current exception the validation of the SSL
+    certificate should be disabled for the metadata provider. In order
+    to do that the `https_allow_insecure` config option should be set.
+    """
+
+    template = "The received certificate is not valid."
+
+
+class NotSupported(ServiceException):
 
     """The functionality required is not available in the current context."""
 
-    template = "%(feature)s is not available in %(context)s."
+    template = "%(feature)s is not available for %(context)s."

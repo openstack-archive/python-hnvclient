@@ -47,10 +47,22 @@ class HVNOptions(config_base.Options):
                 "https_ca_bundle", default=None,
                 help=("The path to a CA_BUNDLE file or directory with "
                       "certificates of trusted CAs.")),
+            cfg.IntOpt(
+                "retry_count", default=5,
+                help="Max. number of attempts for fetching metadata in "
+                     "case of transient errors"),
             cfg.FloatOpt(
                 "retry_interval", default=1,
                 help=("Interval between attempts in case of transient errors, "
                       "expressed in seconds")),
+            cfg.IntOpt(
+                "http_request_timeout", default=None,
+                help=("Number of seconds until network requests stop waiting "
+                      "for a response")),
+            cfg.StrOpt(
+                "logical_network", default=None,
+                help=("Logical network to use as a medium for tenant network "
+                      "traffic.")),
         ]
 
     def register(self):
