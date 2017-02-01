@@ -79,13 +79,14 @@ class Field(object):
     """
 
     def __init__(self, name, key, default=None, is_required=False,
-                 is_property=True, is_read_only=False):
+                 is_property=True, is_read_only=False, is_static=False):
         self._name = name
         self._key = key
         self._default = default
         self._is_required = is_required
         self._is_property = is_property
         self._is_read_only = is_read_only
+        self._is_static = is_static
 
     @property
     def name(self):
@@ -116,6 +117,11 @@ class Field(object):
     def is_read_only(self):
         """Whether the current field can be updated."""
         return self._is_read_only
+
+    @property
+    def is_static(self):
+        """Whether the value of the current field can be changed."""
+        return self._is_static
 
     def add_to_class(self, model_class):
         """Replace the `Field` attribute with a named `_FieldDescriptor`.
@@ -164,15 +170,15 @@ class _ModelOptions(object):
         field = self._fields.pop(field_name, None)
         if field is not None and field.default is not None:
             if six.callable(field.default):
-                self._default_callables.pop(field.name, None)
+                self._default_callables.pop(field.key, None)
             else:
-                self._defaults.pop(field.name, None)
+                self._defaults.pop(field.key, None)
 
     def get_defaults(self):
         """Get a dictionary that contains all the available defaults."""
         defaults = self._defaults.copy()
-        for field_name, default in self._default_callables.items():
-            defaults[field_name] = default()
+        for field_key, default in self._default_callables.items():
+            defaults[field_key] = default()
         return defaults
 
 
@@ -197,7 +203,7 @@ class _BaseModel(type):
 
         # Get all the available fields for the current model.
         for name, field in list(cls.__dict__.items()):
-            if isinstance(field, Field) and not name.startswith("_"):
+            if not name.startswith("_") and isinstance(field, Field):
                 field.add_to_class(cls)
 
         # Create string representation for the current model before finalizing
@@ -213,16 +219,9 @@ class Model(object):
     def __init__(self, **fields):
         self._data = self._meta.get_defaults()
         self._changes = {}
+
         self._provision_done = False
-
-        for field in self._meta.fields.values():
-            value = fields.pop(field.name, None)
-            if field.key not in self._data or value:
-                setattr(self, field.name, value)
-
-        if fields:
-            LOG.debug("Unrecognized fields: %r", fields)
-
+        self._set_fields(fields)
         self._provision_done = True
 
     def __eq__(self, other):
@@ -231,14 +230,46 @@ class Model(object):
 
         my_properties = self.dump().get("properties", {})
         other_properties = other.dump().get("properties", {})
+        for properties in (my_properties, other_properties):
+            for ignore_key in ("provisioningState", ):
+                properties.pop(ignore_key, None)
         return my_properties == other_properties
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def _unpack(self, value):
+        """Obtain the raw representation of the received object."""
+        if isinstance(value, Model):
+            return value.dump()
+
+        if isinstance(value, list):
+            container_list = []
+            for item in value:
+                container_list.append(self._unpack(item))
+            return container_list
+
+        if isinstance(value, dict):
+            container_dict = {}
+            for key, item in value.items():
+                container_dict[key] = self._unpack(item)
+            return container_dict
+
+        return value
+
+    def _set_fields(self, fields):
+        """Set or update the fields value."""
+        for field in self._meta.fields.values():
+            value = fields.pop(field.name, None)
+            if field.key not in self._data or value:
+                setattr(self, field.name, value)
+
+        if fields:
+            LOG.debug("Unrecognized fields: %r", fields)
+
     @classmethod
-    def from_raw_data(cls, raw_data):
-        """Create a new model using raw API response."""
+    def process_raw_data(cls, raw_data):
+        """Process the received data in order to be understood by the model."""
         content = {}
         properties = raw_data.pop("properties", {})
         for field_name, field in cls._meta.fields.items():
@@ -253,6 +284,12 @@ class Model(object):
         if properties:
             LOG.debug("Unrecognized properties: %r", properties)
 
+        return content
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        content = cls.process_raw_data(raw_data)
         return cls(**content)
 
     @property
@@ -270,9 +307,10 @@ class Model(object):
 
     def update(self, fields=None):
         """Update the value of one or more fields."""
-        for field_name, field in self._meta.fields.items():
-            if field_name in fields:
-                self._changes[field.key] = fields[field_name]
+        if fields and isinstance(fields, dict):
+            for field_name, field in self._meta.fields.items():
+                if field_name in fields:
+                    self._changes[field.key] = fields[field_name]
         self._data.update(self._changes)
 
     def commit(self, wait=False, timeout=None):
@@ -281,18 +319,17 @@ class Model(object):
         self._data.update(self._changes)
         self._changes.clear()
 
-    def dump(self, include_read_only=True):
+    def dump(self, include_read_only=True, include_static=False):
         """Create a dictionary with the content of the current model."""
         content = {}
         for field in self._meta.fields.values():
             if field.is_read_only and not include_read_only:
                 continue
 
-            value = self._data.get(field.key)
-            if isinstance(value, Model):
-                # The raw content of the model is required
-                value = value.dump()
+            if field.is_static and not include_static:
+                continue
 
+            value = self._unpack(self._data.get(field.key))
             if not field.is_required and value is None:
                 # The value of this field is not relevant
                 continue
