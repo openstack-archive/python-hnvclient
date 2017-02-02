@@ -15,6 +15,7 @@
 # pylint: disable=protected-access
 
 import unittest
+
 try:
     import unittest.mock as mock
 except ImportError:
@@ -24,6 +25,8 @@ from hnv_client import client
 from hnv_client.common import constant
 from hnv_client.common import exception
 from hnv_client import config as hnv_config
+from hnv_client.tests.fake import fake_response
+from hnv_client.tests import utils as test_utils
 
 CONFIG = hnv_config.CONFIG
 
@@ -163,3 +166,52 @@ class TestBaseHNVModel(unittest.TestCase):
     def test_commit_invalid_response(self):
         self._test_commit(loop_count=1, timeout=False,
                           failed=False, invalid_response=True)
+
+
+class TestClient(unittest.TestCase):
+
+    def setUp(self):
+        self._response = fake_response.FakeResponse()
+
+    def _test_get_resource(self, model, raw_data):
+        with test_utils.LogSnatcher("hnv_client.client") as logging:
+            model.from_raw_data(raw_data)
+        self.assertEqual(logging.output, [])
+
+    def test_logical_networks(self):
+        resources = self._response.logical_networks()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.LogicalNetworks,
+                                    raw_data=raw_data)
+
+    def test_logical_network_structure(self):
+        raw_data = self._response.logical_networks()["value"][0]
+        logical_network = client.LogicalNetworks.from_raw_data(raw_data)
+
+        for logical_subnetwork in logical_network.subnetworks:
+            self.assertIsInstance(logical_subnetwork,
+                                  client.LogicalSubnetworks)
+
+        for virtual_network in logical_network.virtual_networks:
+            self.assertIsInstance(virtual_network, client.Resource)
+
+    def test_logical_subnets(self):
+        resources = self._response.logical_subnets()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.LogicalSubnetworks,
+                                    raw_data=raw_data)
+
+    def test_logical_subnets_structure(self):
+        raw_data = self._response.logical_subnets()["value"][0]
+        logical_subnetwork = client.LogicalSubnetworks.from_raw_data(raw_data)
+
+        for ip_pool in logical_subnetwork.ip_pools:
+            self.assertIsInstance(ip_pool, client.IPPools)
+
+    def test_ip_pools(self):
+        resources = self._response.ip_pools()
+        for raw_data in resources.get("value", []):
+            raw_data["parentResourceID"] = "{uniqueString}"
+            raw_data["grandParentResourceID"] = "{uniqueString}"
+            self._test_get_resource(model=client.IPPools,
+                                    raw_data=raw_data)
