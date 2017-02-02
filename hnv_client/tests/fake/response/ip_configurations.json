@@ -1,0 +1,24 @@
+{
+    "value": [
+        {
+            "resourceRef": "/networkInterfaces/ee9be550-4dd3-43af-9b69-8a45f1ef3569 /ipConfigurations/c1fe8acf-cf68-45f0-bc70-f9a1cd8d3953",
+            "resourceId": "c1fe8acf-cf68-45f0-bc70-f9a1cd8d3953",
+            "etag": "W/\"d728c292-9499-497b-a328-0216b50e7f21\"",
+            "instanceId": "2d254540-9c81-4216-8da6-44d498061040",
+            "properties": {
+                "provisioningState": "Succeeded",
+                "privateIPAddress": "20.168.0.26",
+                "privateIPAllocationMethod": "Static",
+                "subnet": {
+                    "resourceRef": "/virtualNetworks/29d028bc-a244-4bec-b3bb-958ea0c64681 /subnets/c0f6d801-ca07-4345-8274-20b13454c51a"
+                },
+                "accessControlList": {
+                    "resourceRef": "/accessControlLists/28f4e1fc-2d3a-41c0-97f2-261be40bda77"
+                },
+                "loadBalancerBackendAddressPools": [],
+                "loadBalancerInboundNatRules": []
+            }
+        }
+    ],
+    "nextLink": ""
+}

@@ -174,7 +174,7 @@ class TestClient(unittest.TestCase):
         self._response = fake_response.FakeResponse()
 
     def _test_get_resource(self, model, raw_data):
-        with test_utils.LogSnatcher("hnv_client.client") as logging:
+        with test_utils.LogSnatcher("hnv_client.common.model") as logging:
             model.from_raw_data(raw_data)
         self.assertEqual(logging.output, [])
 
@@ -214,4 +214,28 @@ class TestClient(unittest.TestCase):
             raw_data["parentResourceID"] = "{uniqueString}"
             raw_data["grandParentResourceID"] = "{uniqueString}"
             self._test_get_resource(model=client.IPPools,
+                                    raw_data=raw_data)
+
+    def test_network_interfaces(self):
+        resources = self._response.network_interfaces()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.NetworkInterfaces,
+                                    raw_data=raw_data)
+
+    def test_network_interfaces_structure(self):
+        raw_data = self._response.network_interfaces()["value"][0]
+        network_interface = client.NetworkInterfaces.from_raw_data(raw_data)
+
+        for configuration in network_interface.ip_configurations:
+            self.assertIsInstance(configuration, client.IPConfiguration)
+
+        self.assertIsInstance(network_interface.dns_settings,
+                              client.DNSSettings)
+        self.assertIsInstance(network_interface.port_settings,
+                              client.PortSettings)
+
+    def test_ip_configurations(self):
+        resources = self._response.ip_configurations()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.IPConfiguration,
                                     raw_data=raw_data)

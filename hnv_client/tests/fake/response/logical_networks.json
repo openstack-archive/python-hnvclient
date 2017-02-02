@@ -23,7 +23,6 @@
                                 }
                             ],
                             "gatewayPools": [],
-                            "networkConnections": [],
                             "vlanID": "109",
                             "ipPools": [
                                 {
@@ -53,12 +52,7 @@
                             "defaultGateways": [
                                 "192.83.0.1"
                             ],
-                            "isPublic": false,
-                            "usage": {
-                                "numberOfIPAddresses": 65445,
-                                "numberofIPAddressesAllocated": 2,
-                                "numberOfIPAddressesInTransition": 0
-                            }
+                            "isPublic": false
                         }
                     }
                 ],
