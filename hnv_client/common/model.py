@@ -280,9 +280,11 @@ class Model(object):
             content[field_name] = value
 
         if raw_data:
-            LOG.debug("Unrecognized fields: %r", raw_data)
+            LOG.debug("Unrecognized fields: %r for %r",
+                      raw_data, cls.__name__)
         if properties:
-            LOG.debug("Unrecognized properties: %r", properties)
+            LOG.debug("Unrecognized properties: %r for %r",
+                      properties, cls.__name__)
 
         return content
 
