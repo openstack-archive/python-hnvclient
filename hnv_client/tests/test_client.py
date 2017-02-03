@@ -275,3 +275,15 @@ class TestClient(unittest.TestCase):
         raw_data = self._response.virtual_switch_manager()
         self._test_get_resource(model=client.VirtualSwitchManager,
                                 raw_data=raw_data)
+
+    def test_routes(self):
+        resources = self._response.routes()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.Routes,
+                                    raw_data=raw_data)
+
+    def test_route_tables(self):
+        resources = self._response.route_tables()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.RouteTables,
+                                    raw_data=raw_data)

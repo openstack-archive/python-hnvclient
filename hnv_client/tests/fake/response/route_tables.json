@@ -1,0 +1,71 @@
+{
+    "value": [
+        {
+            "resourceRef": "/routeTables/rt",
+            "resourceId": "rt",
+            "resourceMetadata": {},
+            "etag": "W/\"153bce9f-1830-4f13-b90d-a7017119ac24\"",
+            "instanceId": "0cbeadb5-6bc8-41b6-9bba-6b96ca010eba",
+            "properties": {
+                "provisioningState": "Succeeded",
+                "routes": [
+                    {
+                        "resourceRef": "/routeTables/rt/routes/4f7b9b29-6744-436d-af0e-779fa7093f29",
+                        "resourceId": "4f7b9b29-6744-436d-af0e-779fa7093f29",
+                        "resourceMetadata": {},
+                        "etag": "W/\"153bce9f-1830-4f13-b90d-a7017119ac24\"",
+                        "instanceId": "cdbf5edf-d288-4d8e-89b9-f45a2a1d59ec",
+                        "properties": {
+                            "provisioningState": "Succeeded",
+                            "addressPrefix": "11.0.0.0/24",
+                            "nextHopType": "VirtualAppliance",
+                            "nextHopIpAddress": "12.0.0.21"
+                        }
+                    }
+                ],
+                "subnets": []
+            }
+        },
+        {
+            "resourceRef": "/routeTables/d81c27bd-4be4-438a-8b88-31ca717cfe75",
+            "resourceId": "d81c27bd-4be4-438a-8b88-31ca717cfe75",
+            "etag": "W/\"7a107f52-a9b3-486e-b8a0-cb85426c1400\"",
+            "instanceId": "a6070cef-9db4-439a-a095-1cc5e5b9ed8c",
+            "properties": {
+                "provisioningState": "Succeeded",
+                "routes": [
+                    {
+                        "resourceRef": "/routeTables/d81c27bd-4be4-438a-8b88-31ca717cfe75/routes/4f7b9b29-6744-436d-af0e-779fa7093f29",
+                        "resourceId": "4f7b9b29-6744-436d-af0e-779fa7093f29",
+                        "etag": "W/\"7a107f52-a9b3-486e-b8a0-cb85426c1400\"",
+                        "instanceId": "94428b30-47fa-4ba3-b5c5-0fa949eb0ccc",
+                        "properties": {
+                            "provisioningState": "Succeeded",
+                            "addressPrefix": "11.0.0.0/24",
+                            "nextHopType": "VirtualAppliance",
+                            "nextHopIpAddress": "12.0.0.21"
+                        }
+                    },
+                    {
+                        "resourceRef": "/routeTables/d81c27bd-4be4-438a-8b88-31ca717cfe75/routes/4e65fd4c-51bd-4ac5-bbec-c9fad8d66a24",
+                        "resourceId": "4e65fd4c-51bd-4ac5-bbec-c9fad8d66a24",
+                        "etag": "W/\"7a107f52-a9b3-486e-b8a0-cb85426c1400\"",
+                        "instanceId": "1dcd588f-56b9-4807-b818-b1325831684b",
+                        "properties": {
+                            "provisioningState": "Succeeded",
+                            "addressPrefix": "11.0.0.22/32",
+                            "nextHopType": "VnetLocal",
+                            "nextHopIpAddress": ""
+                        }
+                    }
+                ],
+                "subnets": [
+                    {
+                        "resourceRef": "/virtualNetworks/13b0d711-6db5-4309-b454-595625165034/subnets/4e577d52-e7be-4c45-a369-f0f941f3555a"
+                    }
+                ]
+            }
+        }
+    ],
+    "nextLink": ""
+}

@@ -1096,3 +1096,93 @@ class VirtualSwitchManager(_BaseHNVModel):
         """Delete the required resource."""
         raise exception.NotSupported(feature="DELETE",
                                      context="VirtualSwitchManager")
+
+
+class Routes(_BaseHNVModel):
+
+    """Routes Model.
+
+    A routes resource is used to create routes under a tenant's Route Table.
+    The tenant can specify the addressPrefix of the route, the type of next
+    hop, and the next hop customer IP address.
+    """
+
+    _endpoint = "/networking/v1/routeTables/{parent_id}/routes/{resource_id}"
+
+    parent_id = model.Field(name="parent_id",
+                            key="parentResourceID",
+                            is_property=False, is_required=False,
+                            is_read_only=True)
+    """The parent resource ID field contains the resource ID that is
+    associated with network objects that are ancestors of the necessary
+    resource.
+    """
+
+    address_prefix = model.Field(name="address_prefix", key="addressPrefix",
+                                 is_required=True)
+    """The destination CIDR to which the route applies, such as 10.1.0.0/16"""
+
+    next_hop_type = model.Field(name="next_hop_type", key="nextHopType",
+                                is_required=True)
+    """The type of hop to which the packet is sent.
+
+    Valid values are:
+        * `constant.VIRTUAL_APPLIANCE` represents a virtual appliance VM
+            within the tenant virtual network.
+        * `constant.VNET_LOCAL` represents the local virtual network.
+        * `constant.VIRTUAL_NETWORK_GATEWAY` represents a virtual network
+            gateway.
+        * `constant.INTERNET` represents the default internet gateway.
+        * `None` represents a black hole.
+    """
+
+    next_hop_ip_address = model.Field(name="next_hop_ip_address",
+                                      key="nextHopIpAddress",
+                                      is_required=False)
+    """Indicates the next hop to which IP address packets are forwarded,
+    such as 11.0.0.23."""
+
+
+class RouteTables(_BaseHNVModel):
+
+    """Route Table Model.
+
+    The RouteTable resource contains a list of routes. RouteTable resources
+    can be applied to subnets of a tenant virtual network to control routing
+    within virtual network. Once routeTables has been associated to a virtual
+    subnet, all tenant VMs created within that subnet will inherit the
+    RouteTable and will have their traffic routed per the routes contained
+    in the table.
+    """
+
+    _endpoint = "/networking/v1/routeTables/{resource_id}"
+
+    routes = model.Field(name="routes", key="routes", is_required=False,
+                         default=[])
+    """Indicates the routes in a route table, see routes resource for full
+    details on this element."""
+
+    subnetworks = model.Field(name="subnetworks", key="subnets",
+                              is_read_only=True)
+    """Indicates an array of references to subnets resources this route
+    table is associated with."""
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data["properties"]
+
+        routes = []
+        raw_routes = properties.get("routes", [])
+        for raw_route in raw_routes:
+            raw_route["parentResourceID"] = raw_data["resourceId"]
+            routes.append(Routes.from_raw_data(raw_route))
+        properties["routes"] = routes
+
+        subnets = []
+        raw_subnets = properties.get("subnets", [])
+        for raw_subnet in raw_subnets:
+            subnets.append(Resource.from_raw_data(raw_subnet))
+        properties["subnets"] = subnets
+
+        return super(RouteTables, cls).from_raw_data(raw_data)
