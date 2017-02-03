@@ -61,3 +61,11 @@ class FakeResponse(object):
     def virtual_subnetworks(self):
         """Fake GET(all) response for virtual subnetworks."""
         return self._load_resource("virtual_subnetworks.json")
+
+    def acl_rules(self):
+        """Fake GET(all) response for ACL rules."""
+        return self._load_resource("acl_rules.json")
+
+    def acl(self):
+        """Fake GET(all) response for ACL."""
+        return self._load_resource("acl.json")
