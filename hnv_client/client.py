@@ -1018,3 +1018,81 @@ class AccessControlLists(_BaseHNVModel):
         properties["configurationState"] = configuration
 
         return super(AccessControlLists, cls).from_raw_data(raw_data)
+
+
+class VirtualSwtichQosSettings(model.Model):
+
+    """Model for virtual switch QoS settings."""
+
+    reservation_mode = model.Field(
+        name="reservation_mode", key="reservationMode",
+        is_required=False, is_property=False)
+    """Specifies whether outboundReservedValue is applied as the absolute
+    bandwidth (Mbps) or as a weighted value.
+    Allowed values are `constant.ABSOLUTE` or `constant.WEIGHT`.
+    """
+
+    enable_software_revervations = model.Field(
+        name="enable_software_revervations", key="enableSoftwareReservations",
+        is_required=False, is_property=False)
+    """True to enable software qos reservation."""
+
+    enable_hardware_limits = model.Field(
+        name="enable_hardware_limits", key="enableHardwareLimits",
+        is_required=False, is_property=False)
+    """Offloads Tx and Rx cap to hardware."""
+
+    enable_hardware_reservations = model.Field(
+        name="enable_hardware_reservations", key="enableHardwareReservations",
+        is_required=False, is_property=False)
+    """Offloads bandwith reservation to hardware."""
+
+    link_speed_percentage = model.Field(
+        name="link_speed_percentage", key="linkSpeedPercentage",
+        is_required=False, is_property=False)
+    """The percentage of the link speed to be used for calculating reservable
+    bandwidth."""
+
+    default_reservation = model.Field(
+        name="default_reservation", key="defaultReservation",
+        is_required=False, is_property=False, default=0)
+    """The default value of the reservation to be used for Nics that do not
+    have any reservation specified (0)."""
+
+
+class VirtualSwitchManager(_BaseHNVModel):
+
+    """Virtual switch manager model.
+
+    The virtualSwitchManager resource is a singleton resource that
+    configures the virtual switch properties on every server managed
+    by the Network Controller (meaning that the NC has server resources for
+    those machines).
+    """
+
+    _endpoint = "/networking/v1/virtualSwitchManager/configuration"
+
+    qos_settings = model.Field(name="qos_settings", key="qosSettings",
+                               is_required=False)
+
+    def __init__(self, **fields):
+        qos_settings = fields.pop("qos_settings", {})
+        if not isinstance(qos_settings, VirtualSwtichQosSettings):
+            fields["qos_settings"] = VirtualSwtichQosSettings.from_raw_data(
+                raw_data=qos_settings)
+        super(VirtualSwitchManager, self).__init__(**fields)
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data["properties"]
+        qos_settings = properties.get("qosSettings", {})
+        properties["qosSettings"] = VirtualSwtichQosSettings.from_raw_data(
+            raw_data=qos_settings)
+        return super(VirtualSwitchManager, cls).from_raw_data(raw_data)
+
+    @classmethod
+    def remove(cls, resource_id, parent_id=None, wait=True, timeout=None):
+        """Delete the required resource."""
+        raise exception.NotSupported(feature="DELETE",
+                                     context="VirtualSwitchManager")
