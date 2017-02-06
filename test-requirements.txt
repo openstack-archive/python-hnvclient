@@ -3,10 +3,11 @@
 # process, which may cause wedges in the gate later.
 
 hacking<0.11,>=0.10.0
-
 coverage>=4.0 # Apache-2.0
 fixtures>=3.0.0 # Apache-2.0/BSD
 mock>=2.0 # BSD
+sphinx
+oslosphinx
 python-subunit>=0.0.18 # Apache-2.0/BSD
 testrepository>=0.0.18 # Apache-2.0/BSD
 testscenarios>=0.4 # Apache-2.0/BSD

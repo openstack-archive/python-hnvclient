@@ -7,3 +7,5 @@ env:
   - TOXENV=py27
   - TOXENV=pep8
   - TOXENV=pylint
+  - TOXENV=cover
+  - TOXENV=docs
