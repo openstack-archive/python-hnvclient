@@ -80,9 +80,13 @@ class _BaseHNVModel(model.Model):
     optional element but it is suggested that all clients fill in the data
     that is applicable to them."""
 
-    etag = model.Field(name="etag", key="etag", is_property=False)
+    etag = model.Field(name="etag", key="etag", is_property=False,
+                       is_read_only=True)
     """An opaque string representing the state of the resource at the
-    time the response was generated."""
+    time the response was generated. This header is returned for
+    requests that target a single entity. The Network Controller will
+    also always return an etag in the response body. The etag is
+    updated every time the resource is updated."""
 
     tags = model.Field(name="tags", key="tags", is_property=False,
                        is_required=False)
@@ -92,6 +96,12 @@ class _BaseHNVModel(model.Model):
                                      is_read_only=True, is_required=False)
     """Indicates the various states of the resource. Valid values are
     Deleting, Failed, Succeeded, and Updating."""
+
+    configuration_state = model.Field(name="configuration_state",
+                                      key="configurationState",
+                                      is_read_only=True, is_required=False)
+    """"Configuration state indicates any failures in processing state
+    corresponding to the resource it is contained in."""
 
     @staticmethod
     def _get_client():
@@ -212,10 +222,17 @@ class _BaseHNVModel(model.Model):
     @classmethod
     def from_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
+        properties = raw_data.get("properties", {})
+
         raw_metadata = raw_data.get("resourceMetadata", None)
         if raw_metadata is not None:
             metadata = ResourceMetadata.from_raw_data(raw_metadata)
             raw_data["resourceMetadata"] = metadata
+
+        raw_state = properties.get("configurationState", None)
+        if raw_state is not None:
+            configuration = ConfigurationState.from_raw_data(raw_state)
+            properties["configurationState"] = configuration
 
         return super(_BaseHNVModel, cls).from_raw_data(raw_data)
 
@@ -655,10 +672,6 @@ class NetworkInterfaces(_BaseHNVModel):
 
     _endpoint = "/networking/v1/networkInterfaces/{resource_id}"
 
-    configuration_state = model.Field(name="configuration_state",
-                                      key="configurationState",
-                                      is_read_only=True, is_required=False)
-
     dns_settings = model.Field(name="dns_settings", key="dnsSettings",
                                is_read_only=False)
     """Indicates the DNS settings of this network interface."""
@@ -732,10 +745,6 @@ class NetworkInterfaces(_BaseHNVModel):
         raw_settings = properties.get("portSettings", {})
         port_settings = PortSettings.from_raw_data(raw_settings)
         properties["portSettings"] = port_settings
-
-        raw_state = properties.get("configurationState", {})
-        configuration = ConfigurationState.from_raw_data(raw_state)
-        properties["configurationState"] = configuration
 
         return super(NetworkInterfaces, cls).from_raw_data(raw_data)
 
@@ -824,11 +833,6 @@ class VirtualNetworks(_BaseHNVModel):
 
     _endpoint = "/networking/v1/virtualNetworks/{resource_id}"
 
-    configuration_state = model.Field(name="configuration_state",
-                                      key="configurationState",
-                                      is_read_only=True)
-    """Indicates the last known running state of this resource."""
-
     address_space = model.Field(name="address_space",
                                 key="addressSpace",
                                 is_required=True)
@@ -863,11 +867,6 @@ class VirtualNetworks(_BaseHNVModel):
         raw_network = properties.get("logicalNetwork")
         if raw_network:
             properties["logicalNetwork"] = Resource.from_raw_data(raw_network)
-
-        raw_config = properties.get("configurationState")
-        if raw_config:
-            config = ConfigurationState.from_raw_data(raw_config)
-            properties["configurationState"] = config
 
         return super(VirtualNetworks, cls).from_raw_data(raw_data)
 
@@ -968,11 +967,6 @@ class AccessControlLists(_BaseHNVModel):
 
     _endpoint = "/networking/v1/accessControlLists/{resource_id}"
 
-    configuration_state = model.Field(name="configuration_state",
-                                      key="configurationState",
-                                      is_read_only=True)
-    """Indicates the last known running state of this resource."""
-
     acl_rules = model.Field(name="acl_rules", key="aclRules")
     """Indicates the rules in an access control list."""
 
@@ -1012,10 +1006,6 @@ class AccessControlLists(_BaseHNVModel):
             raw_rule["parentResourceID"] = raw_data["resourceId"]
             acl_rules.append(ACLRules.from_raw_data(raw_rule))
         properties["aclRules"] = acl_rules
-
-        raw_state = properties.get("configurationState", {})
-        configuration = ConfigurationState.from_raw_data(raw_state)
-        properties["configurationState"] = configuration
 
         return super(AccessControlLists, cls).from_raw_data(raw_data)
 
@@ -1186,3 +1176,494 @@ class RouteTables(_BaseHNVModel):
         properties["subnets"] = subnets
 
         return super(RouteTables, cls).from_raw_data(raw_data)
+
+
+class MainMode(model.Model):
+
+    """Main mode IPsec configuration details."""
+
+    diffie_hellman_group = model.Field(
+        name="diffie_hellman_group", key="diffieHellmanGroup",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates Diffie Hellman group used during main mode IKE negotiation.
+    Values: `Group1`, `Group2`, `Group14`, `ECP256`, `ECP384` or `Group24`."""
+
+    integrity_algorithm = model.Field(
+        name="integrity_algorithm", key="integrityAlgorithm",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates Integrity algorithm used during main mode IKE negotiation.
+    Values: `MD5`, `SHA196`, `SHA256` or `SHA384`."""
+
+    encryption_algorithm = model.Field(
+        name="encryption_algorithm", key="encryptionAlgorithm",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates cipher algorithm used during main mode IKE negotiation.
+    Values: `DES`, `DES3`, `AES128`, `AES192` or `AES256`."""
+
+    sa_life_time_seconds = model.Field(
+        name="sa_life_time_seconds", key="saLifeTimeSeconds",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates life time of SA in seconds."""
+
+    sa_life_time_kb = model.Field(
+        name="sa_life_time_kb", key="saLifeTimeKiloBytes",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates life time of SA in Kilobytes. Ignored by IPsec."""
+
+
+class QuickMode(model.Model):
+
+    """Quick mode IPsec configuration"""
+
+    perfect_forward_secrecy = model.Field(
+        name="perfect_forward_secrecy", key="perfectForwardSecrecy",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates whether Perfect Forward Secrecy is enabled or not. If enabled
+    specifies the algorithm.
+    Values: `None`, `PFS1`, `PFS2`, `PFS2048`, `PFS14`, `ECP256`, `ECP384`,
+    `PFSMM` or `PFS24`."""
+
+    cipher_tc = model.Field(
+        name="cipher_tc", key="cipherTransformationConstant",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates the encryption algorithm used for data traffic.
+    Values:
+        None, `constant.AES128`, `constant.AES128CBC`, `constant.AES192`,
+        `constant.AES192CBC`, `constant.AES256`, `constant.AES256`,
+        `constant.CBCDES`, `constant.CBCDES3`, `constant.DES`, `constant.DES3`,
+        `constant.GCMAES128`, `constant.GCMAES192` or `constant.GCMAES256`.
+    """
+
+    authentication_tc = model.Field(
+        name="authentication_tc", key="authenticationTransformationConstant",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates the authentication transform used for data traffic.
+    Values: `constant.MD596`, `constant.SHA196`, `constant.SHA256`,
+    `constant.GCMAES128`, `constant.GCMAES192` or `constant.GCMAES256`."""
+
+    sa_life_time_seconds = model.Field(
+        name="sa_life_time_seconds", key="saLifeTimeSeconds",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates life time of SA in seconds."""
+
+    sa_life_time_kb = model.Field(
+        name="sa_life_time_kb", key="saLifeTimeKiloBytes",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates life time of SA in Kilobytes."""
+
+    idle_disconnect = model.Field(
+        name="idle_disconnect", key="idleDisconnectSeconds",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates idle time after which SA is disconnected."""
+
+
+class _VpnTrafficSelector(model.Model):
+
+    """Model for VPN traffice selector."""
+
+    ts_type = model.Field(
+        name="ts_type", key="type",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates whether traffic is `IPv4` or `IPv6`."""
+
+    protocol_id = model.Field(
+        name="protocol_id", key="protocolId",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates IP protocol ID (such as UDP, TCP, and ICMP)."""
+
+    port_start = model.Field(
+        name="port_start", key="portStart",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates start of port range."""
+
+    port_end = model.Field(
+        name="port_end", key="portEnd",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates end of port range."""
+
+    ip_address_start = model.Field(
+        name="ip_address_start", key="ipAddressStart",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates start of IP addresses."""
+
+    ip_address_end = model.Field(
+        name="ip_address_end", key="ipAddressEnd",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates end of IP addresses."""
+
+    ts_payload_id = model.Field(
+        name="ts_payload_id", key="tsPayloadId",
+        is_required=False, is_read_only=False, is_property=False)
+    """No information available for this field."""
+
+
+class LocalVpnTrafficSelector(_VpnTrafficSelector):
+
+    """Model for local VPN traffic selector.
+
+    Indicates collection of IPsec TrafficSelectors on the hoster side.
+    """
+
+    pass
+
+
+class RemoteVpnTrafficSelector(_VpnTrafficSelector):
+
+    """Model for remote VPN traffic selector.
+
+    Indicates collection of IPsec TrafficSelectors on the tenant side.
+    """
+
+    pass
+
+
+class IPSecConfiguration(model.Model):
+
+    """Details of IPsec configuration."""
+
+    authentication_method = model.Field(
+        name="authentication_method", key="authenticationMethod",
+        is_required=False, is_read_only=False, is_property=False,
+        default="PSK")
+    """Indicates authentication method. PSK is the only valid value."""
+
+    shared_secret = model.Field(
+        name="shared_secret", key="sharedsecret",
+        is_required=False, is_read_only=False, is_property=False)
+    """The shared secret used for this NetworkConnection.
+    Note this is write-only property and the value of this field is not
+    shown in the GET of Networkconnection."""
+
+    main_mode = model.Field(
+        name="main_mode", key="mainMode",
+        is_required=False, is_read_only=False, is_property=False)
+    """Main mode IPsec configuration details."""
+
+    quick_mode = model.Field(
+        name="quick_mode", key="quickMode",
+        is_required=False, is_read_only=False, is_property=False)
+    """Quick mode IPsec configuration."""
+
+    local_vpn_ts = model.Field(
+        name="local_vpn_ts", key="localVpnTrafficSelector",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates collection of IPsec TrafficSelectors on the hoster side."""
+
+    remote_vpn_ts = model.Field(
+        name="remote_vpn_ts", key="remoteVpnTrafficSelector",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates collection of IPsec TrafficSelectors on the tenant side."""
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        raw_main = raw_data.pop("mainMode", None)
+        if raw_main is not None:
+            main_mode = MainMode.from_raw_data(raw_main)
+            raw_data["mainMode"] = main_mode
+
+        raw_quick = raw_data.get("quickMode", None)
+        if raw_quick is not None:
+            quick_mode = QuickMode.from_raw_data(raw_quick)
+            raw_data["quickMode"] = quick_mode
+
+        local_vpn_ts = []
+        for raw_local_vpn in raw_data.get("localVpnTrafficSelector", []):
+            local_vpn_ts.append(LocalVpnTrafficSelector.from_raw_data(
+                raw_local_vpn))
+        raw_data["localVpnTrafficSelector"] = local_vpn_ts
+
+        remote_vpn_ts = []
+        for raw_remote_vpn in raw_data.get("remoteVpnTrafficSelector", []):
+            remote_vpn_ts.append(RemoteVpnTrafficSelector.from_raw_data(
+                raw_remote_vpn))
+        raw_data["remoteVpnTrafficSelector"] = remote_vpn_ts
+
+        return super(IPSecConfiguration, cls).from_raw_data(raw_data)
+
+
+class IPAddress(model.Model):
+
+    """IP assigned in the tenant compartment for L3 interface."""
+
+    ip_address = model.Field(
+        name="ip_address", key="ipAddress",
+        is_required=False, is_read_only=False, is_property=False)
+    """IP address for L3 interface in tenant compartment."""
+
+    prefix_length = model.Field(
+        name="prefix_length", key="prefixLength",
+        is_required=False, is_read_only=False, is_property=False)
+    """Prefix length of the IP address."""
+
+
+class NetworkInterfaceRoute(model.Model):
+
+    """Model for network interface route."""
+
+    destination_prefix = model.Field(
+        name="destination_prefix", key="destinationPrefix",
+        is_required=True, is_read_only=False, is_property=False)
+    """Prefix with subnet of the routes."""
+
+    next_hop = model.Field(
+        name="next_hop", key="nextHop",
+        is_required=False, is_read_only=False, is_property=False)
+    """Next Hop of the routes. Is significant only for L3 connections.
+    Has no significance for point to point connections such as IPsec & GRE."""
+
+    metric = model.Field(
+        name="metric", key="metric",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates Metric of the route."""
+
+    protocol = model.Field(
+        name="protocol", key="protocol",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates how the route is learnt/added (`static` or `BGP`)."""
+
+
+class NetworkInterfaceStatistics(model.Model):
+
+    """Model for network interface statistics."""
+
+    outbound_bytes = model.Field(
+        name="outbound_bytes", key="outboundBytes",
+        is_required=False, is_read_only=True, is_property=False)
+    """Indicates number of bytes transmitted."""
+
+    inbound_bytes = model.Field(
+        name="inbound_bytes", key="inboundBytes",
+        is_required=False, is_read_only=True, is_property=False)
+    """Indicates number of bytes received."""
+
+    rx_total_packets_dropped = model.Field(
+        name="rx_total_packets_dropped", key="rxTotalPacketsDropped",
+        is_required=False, is_read_only=True, is_property=False)
+    """Indicates number of packets dropped in ingress direction."""
+
+    tx_total_packets_dropped = model.Field(
+        name="tx_total_packets_dropped", key="txTotalPacketsDropped",
+        is_required=False, is_read_only=True, is_property=False)
+    """Indicates number of packets dropped in egress direction."""
+
+    tx_rate_kbps = model.Field(
+        name="tx_rate_kbps", key="txRateKbps",
+        is_required=False, is_read_only=True, is_property=False)
+    """Indicates rate at which traffic is going out in Kbps."""
+
+    rx_rate_kbps = model.Field(
+        name="rx_rate_kbps", key="rxRateKbps",
+        is_required=False, is_read_only=True, is_property=False)
+    """Indicates rate at which traffic is coming in in Kbps."""
+
+    tx_rate_limited_packets_dropped = model.Field(
+        name="tx_rate_limited_packets_dropped",
+        key="txRateLimitedPacketsDropped",
+        is_required=False, is_read_only=True, is_property=False)
+    """Indicates number of packets dropped in egress direction due to
+    rate limiting."""
+
+    rx_rate_limited_packets_dropped = model.Field(
+        name="rx_rate_limited_packets_dropped",
+        key="rxRateLimitedPacketsDropped",
+        is_required=False, is_read_only=True, is_property=False)
+    """Indicates number of packets dropped in ingress direction due to
+    rate limiting."""
+
+    last_updated = model.Field(
+        name="last_updated", key="lastUpdated",
+        is_required=False, is_read_only=True, is_property=False)
+    """Indicates the time the statistics were last updated."""
+
+
+class GREConfiguration(model.Model):
+
+    """Model for GRE configuration.
+
+    Indicates details of GRE configuration.
+    """
+
+    gre_key = model.Field(
+        name="gre_key", key="greKey",
+        is_required=False, is_read_only=False, is_property=False)
+    """Indicates GRE key."""
+
+
+class L3Configuration(model.Model):
+
+    """Model for L3 configuration.
+
+    Indicates details of L3 configuration.
+    """
+
+    vlan_subnet = model.Field(
+        name="vlan_subnet", key="vlanSubnet",
+        is_required=False, is_read_only=False, is_property=False)
+    """Reference to a logical subnet of L3 connection."""
+
+
+class NetworkConnections(_BaseHNVModel):
+
+    """Model for network connections.
+
+    The networkConnections resource specifies a connection from virtual
+    network to external networks.
+    Multiple connections can exist for a given virtual network and there
+    are different types of connections.
+    """
+
+    _endpoint = ("/networking/v1/virtualGateways/{parent_id}"
+                 "/networkConnections/{resource_id}")
+
+    parent_id = model.Field(name="parent_id",
+                            key="parentResourceID",
+                            is_property=False, is_required=True,
+                            is_read_only=True)
+    """The parent resource ID field contains the resource ID that is
+    associated with network objects that are ancestors of the necessary
+    resource.
+    """
+
+    connection_type = model.Field(name="connection_type", key="connectionType",
+                                  is_required=False, is_read_only=False)
+    """Indicates type of connection. Valid keys are `constant.IPSSEC`,
+    `constant.GRE`  and `constant.L3`."""
+    outbound_kbps = model.Field(name="outbound_kbps",
+                                key="outboundKiloBitsPerSecond",
+                                is_required=False, is_read_only=False)
+    """Indicates maximum allowed outbound bandwidth in Kbps."""
+
+    inbound_bbps = model.Field(name="inbound_bbps",
+                               key="inboundKiloBitsPerSecond",
+                               is_required=False, is_read_only=False)
+    """Indicates maximum allowed outbound bandwidth in Kbps."""
+
+    ipsec_configuration = model.Field(name="ipsec_configuration",
+                                      key="ipSecConfiguration",
+                                      is_required=False, is_read_only=False)
+    """Details of IPsec configuration."""
+
+    ip_address = model.Field(name="ip_address", key="IpAddress",
+                             is_required=False, is_read_only=False)
+    """Indicates ConnecTo Address to which peers connect to and which is
+    the source IP address in egress direction. This would be the VIP."""
+
+    ip_addresses = model.Field(name="ip_addresses", key="ipAddresses",
+                               is_required=False, is_read_only=False)
+    """IP assigned in the tenant compartment for L3 interface."""
+
+    peer_ip_address = model.Field(name="peer_ip_address",
+                                  key="peerIPAddresses",
+                                  is_required=False, is_read_only=False)
+    """Indicates peer IP address to which connection is made."""
+
+    source_ip_address = model.Field(name="source_ip_address",
+                                    key="sourceIPAddress",
+                                    is_required=False, is_read_only=False)
+    """Indicates sourceIPAddress used by the tunnel. Applicable to
+    IKEv2 and GRE."""
+
+    destination_ip_address = model.Field(name="destination_ip_address",
+                                         key="destinationIPAddress",
+                                         is_required=False, is_read_only=False)
+    """Indicates destination ip address of the tunnel. Applicable to
+    IKEv2 and GRE."""
+
+    routes = model.Field(name="routes", key="routes",
+                         is_required=False, is_read_only=False)
+    """List of all the routes (static and those learned via BGP) on the
+    network interface. Traffic matching the routes is transmitted on the
+    network interface.
+    """
+
+    connection_status = model.Field(name="connection_status",
+                                    key="connectionStatus",
+                                    is_required=False, is_read_only=False)
+    """Indicates administrative status of connection.
+    Values: `enabled` or `disabled`."""
+
+    connection_state = model.Field(name="connection_state",
+                                   key="connectionState",
+                                   is_required=False, is_read_only=False)
+    """Indicates operational status of connection.
+    Values: `Connected` or `Disconnected`.
+    """
+
+    statistics = model.Field(name="statistics", key="statistics",
+                             is_required=False, is_read_only=False)
+    """Statistics of the connection."""
+
+    connection_uptime = model.Field(name="connection_uptime",
+                                    key="connectionUpTime",
+                                    is_required=False, is_read_only=True)
+    """Indicates operations up time of the connection in seconds."""
+
+    connection_error_reason = model.Field(name="connection_error_reason",
+                                          key="connectionErrorReason",
+                                          is_required=False,
+                                          is_read_only=True)
+    """Indicates the reason for not being able to connect after dialling
+    in the previous attempt."""
+
+    unreachability_reason = model.Field(name="unreachability_reason",
+                                        key="unreachabilityReason",
+                                        is_required=False, is_read_only=True)
+    """Indicates the reason for not being able to connect/dial in the
+    previous attempt."""
+
+    gre_configuration = model.Field(name="gre_configuration",
+                                    key="greConfiguration",
+                                    is_required=False, is_read_only=False)
+    """Indicates details of GRE configuration."""
+
+    l3_configuration = model.Field(name="l3_configuration",
+                                   key="l3Configuration",
+                                   is_required=False, is_read_only=False)
+    """Indicates details of L3 configuration."""
+
+    gateway = model.Field(name="gateway", key="gateway",
+                          is_required=False, is_read_only=False)
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data.get("properties", {})
+
+        raw_content = properties.get("ipSecConfiguration", None)
+        if raw_content is not None:
+            ip_sec = IPSecConfiguration.from_raw_data(raw_content)
+            properties["ipSecConfiguration"] = ip_sec
+
+        ip_addresses = []
+        for raw_content in properties.get("ipAddresses", []):
+            ip_addresses.append(IPAddress.from_raw_data(raw_content))
+        properties["ipAddresses"] = ip_addresses
+
+        routes = []
+        for raw_content in properties.get("routes", []):
+            routes.append(NetworkInterfaceRoute.from_raw_data(raw_content))
+        properties["routes"] = routes
+
+        raw_content = properties.get("statistics", None)
+        if raw_content is not None:
+            statistics = NetworkInterfaceStatistics.from_raw_data(
+                raw_content)
+            properties["statistics"] = statistics
+
+        raw_content = properties.get("greConfiguration", None)
+        if raw_content is not None:
+            gre_configuration = GREConfiguration.from_raw_data(raw_content)
+            properties["greConfiguration"] = gre_configuration
+
+        raw_content = properties.get("l3Configuration", None)
+        if raw_content is not None:
+            l3_configuration = L3Configuration.from_raw_data(raw_content)
+            properties["l3Configuration"] = l3_configuration
+
+        raw_content = properties.get("gateway", None)
+        if raw_content is not None:
+            gateway = Resource.from_raw_data(raw_content)
+            properties["gateway"] = gateway
+
+        return super(NetworkConnections, cls).from_raw_data(raw_data)

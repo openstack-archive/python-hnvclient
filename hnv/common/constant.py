@@ -32,3 +32,32 @@ VIRTUAL_APPLIANCE = "VirtualAppliance"
 VNET_LOCAL = "VnetLocal"
 VIRTUAL_NETWORK_GATEWAY = "VirtualNetworkGateway"
 INTERNET = "Internet"
+
+# Network connections: Connection type
+IPSEC = "IPSec"
+GRE = "GRE"
+L3 = "L3"
+
+# Cipher transformation constant
+NONE = "None"
+AES128 = "AES128"
+AES128CBC = "AES128CBC"
+AES192 = "AES192"
+AES192CBC = "AES192CBC"
+AES256 = "AES256"
+AES256 = "AES256"
+CBCDES = "CBCDES"
+CBCDES3 = "CBCDES3"
+DES = "DES"
+DES3 = "DES3"
+GCMAES128 = "GCMAES128"
+GCMAES192 = "GCMAES192"
+GCMAES256 = "GCMAES256"
+
+# Authentication tranformation constant
+MD596 = "MD596"
+SHA196 = "SHA196"
+SHA256 = "SHA256"
+GCMAES128 = "GCMAES128"
+GCMAES192 = "GCMAES192"
+GCMAES256 = "GCMAES256"

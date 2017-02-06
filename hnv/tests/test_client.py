@@ -172,6 +172,7 @@ class TestClient(unittest.TestCase):
 
     def setUp(self):
         self._response = fake_response.FakeResponse()
+        self.maxDiff = None
 
     def _test_get_resource(self, model, raw_data):
         with test_utils.LogSnatcher("hnv.common.model") as logging:
@@ -286,4 +287,10 @@ class TestClient(unittest.TestCase):
         resources = self._response.route_tables()
         for raw_data in resources.get("value", []):
             self._test_get_resource(model=client.RouteTables,
+                                    raw_data=raw_data)
+
+    def test_network_connections(self):
+        resources = self._response.network_connections()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.NetworkConnections,
                                     raw_data=raw_data)

@@ -81,3 +81,7 @@ class FakeResponse(object):
     def route_tables(self):
         """Fake GET(all) response for route tables."""
         return self._load_resource("route_tables.json")
+
+    def network_connections(self):
+        """Fake GET(all) response for network connections."""
+        return self._load_resource("network_connections.json")

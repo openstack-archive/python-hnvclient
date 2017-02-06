@@ -265,13 +265,14 @@ class Model(object):
                 setattr(self, field.name, value)
 
         if fields:
-            LOG.debug("Unrecognized fields: %r", fields)
+            LOG.debug("Ignored fields: %r", fields)
 
     @classmethod
     def process_raw_data(cls, raw_data):
         """Process the received data in order to be understood by the model."""
         content = {}
         properties = raw_data.pop("properties", {})
+
         for field_name, field in cls._meta.fields.items():
             if field.is_property:
                 value = properties.pop(field.key, None)
@@ -282,6 +283,7 @@ class Model(object):
         if raw_data:
             LOG.debug("Unrecognized fields: %r for %r",
                       raw_data, cls.__name__)
+
         if properties:
             LOG.debug("Unrecognized properties: %r for %r",
                       properties, cls.__name__)
