@@ -16,7 +16,7 @@
 
 from oslo_config import cfg
 
-from hnv_client.config import base as config_base
+from hnv.config import base as config_base
 
 
 class HVNOptions(config_base.Options):

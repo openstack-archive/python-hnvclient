@@ -23,7 +23,7 @@ class FakeResponse(object):
     """HNV API fake responses."""
 
     def __init__(self):
-        self._resources = "hnv_client.tests.fake.response"
+        self._resources = "hnv.tests.fake.response"
         self._cache = {}
 
     def _load_resource(self, resource):

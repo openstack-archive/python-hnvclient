@@ -12,20 +12,23 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Factory for all the available config options."""
+"""
+This is the single point of entry to generate the sample configuration
+file for Cloudbase-Init.
+"""
 
-_OPT_PATHS = (
-    'hnv_client.config.hnv.HVNOptions',
-)
+import collections
 
-
-def _load_class(class_path):
-    """Load the module and return the required class."""
-    parts = class_path.rsplit('.', 1)
-    module = __import__(parts[0], fromlist=parts[1])
-    return getattr(module, parts[1])
+from hnv.config import base as config_base
+from hnv.config import factory as config_factory
 
 
 def get_options():
-    """Return a list of all the available `Options` subclasses."""
-    return [_load_class(class_path) for class_path in _OPT_PATHS]
+    """Collect all the options info from the other modules."""
+    options = collections.defaultdict(list)
+    for opt_class in config_factory.get_options():
+        if not issubclass(opt_class, config_base.Options):
+            continue
+        config_options = opt_class(None)
+        options[config_options.group_name].extend(config_options.list())
+    return [(key, value) for key, value in options.items()]

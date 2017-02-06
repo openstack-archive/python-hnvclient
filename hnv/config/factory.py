@@ -12,13 +12,20 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Config options available for HNV client project."""
+"""Factory for all the available config options."""
 
-from oslo_config import cfg
+_OPT_PATHS = (
+    'hnv.config.client.HVNOptions',
+)
 
-from hnv_client.config import factory
+
+def _load_class(class_path):
+    """Load the module and return the required class."""
+    parts = class_path.rsplit('.', 1)
+    module = __import__(parts[0], fromlist=parts[1])
+    return getattr(module, parts[1])
 
 
-CONFIG = cfg.CONF
-for option_class in factory.get_options():
-    option_class(CONFIG).register()
+def get_options():
+    """Return a list of all the available `Options` subclasses."""
+    return [_load_class(class_path) for class_path in _OPT_PATHS]

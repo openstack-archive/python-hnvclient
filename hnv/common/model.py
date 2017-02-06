@@ -21,7 +21,7 @@ import copy
 from oslo_log import log as logging
 import six
 
-from hnv_client.common import exception
+from hnv.common import exception
 
 LOG = logging.getLogger(__name__)
 

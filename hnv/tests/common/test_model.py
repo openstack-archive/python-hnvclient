@@ -21,8 +21,8 @@ try:
 except ImportError:
     import mock
 
-from hnv_client.common import exception
-from hnv_client.common import model
+from hnv.common import exception
+from hnv.common import model
 
 
 class TestFieldDescriptor(unittest.TestCase):
@@ -80,7 +80,7 @@ class TestField(unittest.TestCase):
         self.assertIs(field.is_property, mock.sentinel.is_property)
         self.assertIs(field.is_read_only, mock.sentinel.is_read_only)
 
-    @mock.patch("hnv_client.common.model._FieldDescriptor")
+    @mock.patch("hnv.common.model._FieldDescriptor")
     def test_add_to_class(self, mock_field_descriptor):
         field = model.Field(name="test_add_to_class", key="test")
         model_class = mock.Mock()
@@ -101,7 +101,7 @@ class TestModelOptions(unittest.TestCase):
         self.assertEqual(model_options._name, mock.sentinel.cls.name)
 
     @mock.patch("six.callable")
-    @mock.patch("hnv_client.common.model._ModelOptions.remove_field")
+    @mock.patch("hnv.common.model._ModelOptions.remove_field")
     def _test_add_field(self, mock_remove_field, mock_callable,
                         callable_default):
         model_options = model._ModelOptions(self.__class__)

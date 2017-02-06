@@ -1,6 +1,6 @@
 HNV Client's exceptions
 =======================
 
-.. automodule:: hnv_client.common.exception
+.. automodule:: hnv.common.exception
 	:members:
 .. autoattribute::

@@ -19,11 +19,11 @@ import uuid
 
 from oslo_log import log as logging
 
-from hnv_client.common import constant
-from hnv_client.common import exception
-from hnv_client.common import model
-from hnv_client.common import utils
-from hnv_client import config as hnv_config
+from hnv.common import constant
+from hnv.common import exception
+from hnv.common import model
+from hnv.common import utils
+from hnv import config as hnv_config
 
 LOG = logging.getLogger(__name__)
 CONFIG = hnv_config.CONFIG

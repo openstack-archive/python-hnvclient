@@ -21,7 +21,7 @@ import logging as base_logging
 
 from oslo_log import log as oslo_logging
 
-from hnv_client import config as hnv_conf
+from hnv import config as hnv_conf
 
 
 CONFIG = hnv_conf.CONFIG
@@ -45,7 +45,7 @@ class LogSnatcher(object):
 
     The class can be used as following::
 
-        with LogSnatcher('hnv_client.client') as snatcher:
+        with LogSnatcher('hnv.client') as snatcher:
             LOG.info("doing stuff")
             LOG.info("doing stuff %s", 1)
             LOG.warn("doing other stuff")

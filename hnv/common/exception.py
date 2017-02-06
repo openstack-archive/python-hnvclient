@@ -17,7 +17,7 @@
 
 class HNVException(Exception):
 
-    """Base hnv_client exception.
+    """Base HNV client exception.
 
     To correctly use this class, inherit from it and define
     a `template` property.
