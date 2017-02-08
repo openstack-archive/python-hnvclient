@@ -317,7 +317,7 @@ class Model(object):
                     self._changes[field.key] = fields[field_name]
         self._data.update(self._changes)
 
-    def commit(self, wait=False, timeout=None):
+    def commit(self, if_match=None, wait=False, timeout=None):
         """Apply all the changes on the current model."""
         # pylint: disable=unused-argument
         self._data.update(self._changes)

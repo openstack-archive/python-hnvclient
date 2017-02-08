@@ -105,31 +105,31 @@ class TestHNVClient(unittest.TestCase):
             if isinstance(expected_response, requests.exceptions.SSLError):
                 self.assertRaises(exception.CertificateVerifyFailed,
                                   client._http_request,
-                                  mock.sentinel.resource, method, body)
+                                  "/fake/resource", method, body)
                 return
             elif isinstance(expected_response, requests.ConnectionError):
                 self.assertRaises(requests.ConnectionError,
                                   client._http_request,
-                                  mock.sentinel.resource, method, body)
+                                  "/fake/resource", method, body)
                 return
             elif status_code == 400:
                 self.assertRaises(exception.ServiceException,
                                   client._http_request,
-                                  mock.sentinel.resource, method, body)
+                                  "/fake/resource", method, body)
             elif status_code == 404:
                 self.assertRaises(exception.NotFound,
                                   client._http_request,
-                                  mock.sentinel.resource, method, body)
+                                  "/fake/resource", method, body)
             elif status_code != 200:
                 self.assertRaises(requests.HTTPError,
                                   client._http_request,
-                                  mock.sentinel.resource, method, body)
+                                  "/fake/resource", method, body)
             else:
-                client_response = client._http_request(mock.sentinel.resource,
+                client_response = client._http_request("/fake/resource",
                                                        method, body)
 
         mock_join.assert_called_once_with(mock.sentinel.url,
-                                          mock.sentinel.resource)
+                                          "/fake/resource")
         mock_headers.assert_called_once_with()
         if not method == constant.GET:
             etag = (body or {}).get("etag", None)
@@ -236,9 +236,9 @@ class TestHNVClient(unittest.TestCase):
                                           mock.sentinel.data)
 
         self.assertIs(response, mock.sentinel.response)
-        mock_http_request.assert_called_once_with(mock.sentinel.path,
-                                                  method="PUT",
-                                                  body=mock.sentinel.data)
+        mock_http_request.assert_called_once_with(
+            resource=mock.sentinel.path, method="PUT", body=mock.sentinel.data,
+            if_match=None)
         self.assertRaises(exception.ServiceException,
                           client.update_resource,
                           mock.sentinel.path, mock.sentinel.data)

@@ -153,7 +153,8 @@ class TestBaseHNVModel(unittest.TestCase):
 
         mock_dump.assert_called_once_with(include_read_only=False)
         update_resource.assert_called_once_with(
-            "test/hnv-client", data=mock.sentinel.request_body)
+            "test/hnv-client", data=mock.sentinel.request_body,
+            if_match=None)
 
         if request_wait:
             self.assertEqual(get_resource.call_count, loop_count + 1)
@@ -324,4 +325,46 @@ class TestClient(unittest.TestCase):
         resources = self._response.public_ip_addresses()
         for raw_data in resources.get("value", []):
             self._test_get_resource(model=client.PublicIPAddresses,
+                                    raw_data=raw_data)
+
+    def test_backend_address_pools(self):
+        resources = self._response.backend_address_pools()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.BackendAddressPools,
+                                    raw_data=raw_data)
+
+    def test_frontend_ip_configurations(self):
+        resources = self._response.frontend_ip_configurations()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.FrontendIPConfigurations,
+                                    raw_data=raw_data)
+
+    def test_inbound_nat_rules(self):
+        resources = self._response.inbound_nat_rules()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.InboundNATRules,
+                                    raw_data=raw_data)
+
+    def test_load_balancing_rules(self):
+        resources = self._response.load_balancing_rules()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.LoadBalancingRules,
+                                    raw_data=raw_data)
+
+    def test_outbound_nat_rules(self):
+        resources = self._response.outbound_nat_rules()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.OutboundNATRules,
+                                    raw_data=raw_data)
+
+    def test_probes(self):
+        resources = self._response.probes()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.Probes,
+                                    raw_data=raw_data)
+
+    def test_load_balancers(self):
+        resources = self._response.load_balancers()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.LoadBalancers,
                                     raw_data=raw_data)
