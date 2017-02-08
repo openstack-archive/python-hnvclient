@@ -1,0 +1,47 @@
+{
+    "value": [
+        {
+            "resourceRef": "/publicIPAddresses/pip1",
+            "resourceId": "pip1",
+            "etag": "W/\"2b2feb9e-9830-42ed-9923-01d6693fb240\"",
+            "instanceId": "b34f7a07-4637-40f2-abc5-075ddfc9b785",
+            "properties": {
+                "provisioningState": "Succeeded",
+                "ipAddress": "12.21.4.5",
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4
+            }
+        },
+        {
+            "resourceRef": "/publicIPAddresses/pip2",
+            "resourceId": "pip2",
+            "etag": "W/\"c7a95773-8ad3-44a6-b89c-f4a305569e1d\"",
+            "instanceId": "018a7e31-cf8e-4292-899d-2f3f4b9b96c5",
+            "properties": {
+                "provisioningState": "Succeeded",
+                "ipAddress": "12.21.4.51",
+                "publicIPAllocationMethod": "Static",
+                "idleTimeoutInMinutes": 4
+            },
+            "tags": {
+                "a": "b"
+            }
+        },
+        {
+            "resourceRef": "/publicIPAddresses/pip2",
+            "resourceId": "pip2",
+            "resourceMetadata": {
+                "resourceName": "outbound1"
+            },
+            "etag": "W/\"90a799f7-549d-44ac-baa9-f7ccf69b1dda\"",
+            "instanceId": "018a7e31-cf8e-4292-899d-2f3f4b9b96c5",
+            "properties": {
+                "provisioningState": "Updating",
+                "ipAddress": "12.21.4.51",
+                "publicIPAllocationMethod": "Static",
+                "idleTimeoutInMinutes": 1
+            }
+        }
+    ],
+    "nextLink": ""
+}

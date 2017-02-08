@@ -276,8 +276,13 @@ class ResourceMetadata(model.Model):
     Network Controller and the group that the tenant belongs to in the
     client network."""
 
-    resource_name = model.Field(name="resource_name", key="name",
+    resource_name = model.Field(name="resource_name", key="resourceName",
                                 is_property=False, is_required=False)
+    """Indicates the globally unique name of the resource. If it
+    is not assigned a value then it will be blank."""
+
+    name = model.Field(name="name", key="name",
+                       is_property=False, is_required=False)
     """Indicates the globally unique name of the resource. If it
     is not assigned a value then it will be blank."""
 
@@ -1667,3 +1672,62 @@ class NetworkConnections(_BaseHNVModel):
             properties["gateway"] = gateway
 
         return super(NetworkConnections, cls).from_raw_data(raw_data)
+
+
+class PublicIPAddresses(_BaseHNVModel):
+
+    """Model for public IP addresses.
+
+    The PublicIPAddresses resource specifies an IP address which is publically
+    available. This PublicIPAddresses resource is used by the VirtualGateways
+    resource and the loadBalancers resource to indicate the IP address that
+    can be used to communicate with the virtual network from outside it.
+    """
+
+    _endpoint = "/networking/v1/publicIpAddresses/{resource_i}"
+
+    ip_address = model.Field(name="ip_address", key="ipAddress",
+                             is_required=False, is_read_only=False)
+    """IP address which is allocated.
+
+    The caller can pass in a specific public IP address to be allocated or
+    leave it empty.
+    """
+
+    allocation_method = model.Field(name="allocation_method",
+                                    key="publicIPAllocationMethod",
+                                    is_required=False, is_read_only=False)
+    """`Dynamic` or `Static`
+
+    In case of static publicIpAllocationMethod, ipAddress property
+    needs to be passed indicating the specific public IP address which
+    needs to be allocated.
+    In case of Dynamic publicIpAllocationMethod, the ipAddress
+    property is not meaningful in a PUT (allocation request). In case
+    of Dynamic, any free public IP address will be allocated to the
+    caller.
+    """
+
+    dns_record = model.Field(name="dns_record", key="dnsRecord",
+                             is_required=False, is_read_only=False)
+    """Properties of a DNS record associated with this public IP address."""
+
+    idle_timeout = model.Field(name="idle_timeout",
+                               key="idleTimeoutInMinutes",
+                               is_required=False, is_read_only=False)
+    """Specifies the timeout for the TCP idle connection.
+
+    The value can be set between 4 and 30 minutes. The default is 4
+    minutes. If public IP is used as a frontend IP of a Load Balancer
+    this value is ignored.
+    """
+
+    ip_configuration = model.Field(name="ip_configuration",
+                                   key="ipConfiguration",
+                                   is_required=False, is_read_only=True)
+    """Reference to an ipConfigurations resource.
+
+    Relative URI of the private IP address with which this public IP is
+    associated. Private ip can be defined on NIC, loadBalancers, or
+    gateways.
+    """

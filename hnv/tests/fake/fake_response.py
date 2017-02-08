@@ -85,3 +85,7 @@ class FakeResponse(object):
     def network_connections(self):
         """Fake GET(all) response for network connections."""
         return self._load_resource("network_connections.json")
+
+    def public_ip_addresses(self):
+        """Fake GET(all) response for public IP addresses."""
+        return self._load_resource("public_ip_addresses.json")

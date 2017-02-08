@@ -294,3 +294,9 @@ class TestClient(unittest.TestCase):
         for raw_data in resources.get("value", []):
             self._test_get_resource(model=client.NetworkConnections,
                                     raw_data=raw_data)
+
+    def test_public_ip_addresses(self):
+        resources = self._response.public_ip_addresses()
+        for raw_data in resources.get("value", []):
+            self._test_get_resource(model=client.PublicIPAddresses,
+                                    raw_data=raw_data)
