@@ -824,6 +824,35 @@ class SubNetworks(_BaseHNVModel):
         return super(SubNetworks, cls).from_raw_data(raw_data)
 
 
+class DHCPOptions(model.Model):
+
+    """Model for DHCP options.
+
+    Indicates the DHCP options used by servers in the virtual network.
+    """
+
+    dns_servers = model.Field(
+        name="dns_servers", key="dnsServers",
+        is_property=False, is_required=True, is_read_only=False)
+    """Indicates an array of DNS servers that are being used by
+    the virtual network."""
+
+
+class AddressSpace(model.Model):
+
+    """Indicates the address space of the virtual network."""
+
+    address_prefixes = model.Field(
+        name="address_prefixes", key="addressPrefixes",
+        is_property=False, is_required=True, is_read_only=False)
+    """Indicates the valid list of address prefixes that
+    can make up this virtual network. The value is an array
+    of address prefixes in the format of 0.0.0.0/0.
+    The space cannot be shrunk if addresses are in use in a
+    subnet belonging to the virtual network.
+    """
+
+
 class VirtualNetworks(_BaseHNVModel):
 
     """Virtual Network Model.
@@ -863,15 +892,25 @@ class VirtualNetworks(_BaseHNVModel):
         """Create a new model using raw API response."""
         properties = raw_data["properties"]
 
+        raw_content = properties.get("addressSpace", None)
+        if raw_content is not None:
+            address_space = AddressSpace.from_raw_data(raw_content)
+            properties["addressSpace"] = address_space
+
+        raw_content = properties.get("dhcpOptions")
+        if raw_content is not None:
+            dhcp_options = DHCPOptions.from_raw_data(raw_content)
+            properties["dhcpOptions"] = dhcp_options
+
+        raw_content = properties.get("logicalNetwork", None)
+        if raw_content is not None:
+            properties["logicalNetwork"] = Resource.from_raw_data(raw_content)
+
         subnetworks = []
         for raw_subnet in properties.get("subnets", []):
             raw_subnet["parentResourceID"] = raw_data["resourceId"]
             subnetworks.append(SubNetworks.from_raw_data(raw_subnet))
         properties["subnets"] = subnetworks
-
-        raw_network = properties.get("logicalNetwork")
-        if raw_network:
-            properties["logicalNetwork"] = Resource.from_raw_data(raw_network)
 
         return super(VirtualNetworks, cls).from_raw_data(raw_data)
 
