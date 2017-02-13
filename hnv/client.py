@@ -108,7 +108,6 @@ class _BaseHNVModel(model.Model):
         # pylint: disable=no-member
 
         # Reset the model to the initial state
-        self._data = self._meta.get_defaults()
         self._provision_done = False    # Set back the provision flag
         self._changes.clear()           # Clear the changes
 
@@ -138,10 +137,12 @@ class _BaseHNVModel(model.Model):
                                         grandparent_id=grandparent_id or "")
         resources = []
         while True:
-            raw_data = client.get_resource(endpoint)
-            for item in raw_data.get("value", []):
-                resources.append(cls.from_raw_data(item))
-            endpoint = raw_data.get("nextLink")
+            response = client.get_resource(endpoint)
+            for raw_data in response.get("value", []):
+                raw_data["parentResourceID"] = parent_id
+                raw_data["grandParentResourceID"] = grandparent_id
+                resources.append(cls.from_raw_data(raw_data))
+            endpoint = response.get("nextLink")
             if not endpoint:
                 break
         return resources
@@ -154,6 +155,8 @@ class _BaseHNVModel(model.Model):
                                         parent_id=parent_id or "",
                                         grandparent_id=grandparent_id or "")
         raw_data = client.get_resource(endpoint)
+        raw_data["parentResourceID"] = parent_id
+        raw_data["grandParentResourceID"] = grandparent_id
         return cls.from_raw_data(raw_data)
 
     @classmethod

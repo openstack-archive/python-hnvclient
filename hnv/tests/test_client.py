@@ -55,6 +55,7 @@ class TestBaseHNVModel(unittest.TestCase):
         mock_from_raw_data.return_value = mock.sentinel.resource
         http_client = mock_get_client.return_value = mock.Mock()
         get_resource = http_client.get_resource = mock.Mock()
+        get_resource.return_value = {}
 
         resource = client._BaseHNVModel.get(resource_id="hnv-client-test")
 
@@ -64,16 +65,16 @@ class TestBaseHNVModel(unittest.TestCase):
     @mock.patch("hnv.client._BaseHNVModel.from_raw_data")
     @mock.patch("hnv.client._BaseHNVModel._get_client")
     def test_get_all(self, mock_get_client, mock_from_raw_data):
-        mock_from_raw_data.side_effect = range(10)
+        mock_from_raw_data.side_effect = [{} for index in range(10)]
 
         http_client = mock_get_client.return_value = mock.Mock()
         get_resource = http_client.get_resource = mock.Mock()
-        get_resource.return_value = {"value": range(10)}
+        get_resource.return_value = {"value": [{} for _ in range(10)]}
 
         resources = client._BaseHNVModel.get()
 
         get_resource.assert_called_once_with("/")
-        self.assertEqual(resources, range(10))
+        self.assertEqual(resources, [{} for _ in range(10)])
 
     @mock.patch("time.sleep")
     @mock.patch("hnv.client._BaseHNVModel._get_client")
