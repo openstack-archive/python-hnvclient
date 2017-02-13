@@ -125,3 +125,7 @@ class FakeResponse(object):
     def bgp_routers(self):
         """Fake GET(all) response for BGP routers."""
         return self._load_resource("bgp_routers.json")
+
+    def load_balancer_manager(self):
+        """Fake GET response for load balancer manager."""
+        return self._load_resource("load_balancer_manager.json")

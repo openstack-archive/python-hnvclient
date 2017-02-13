@@ -2900,3 +2900,53 @@ class BGPRouters(_BaseHNVModel):
         properties["bgpPeers"] = bgp_peers
 
         return super(BGPRouters, cls).from_raw_data(raw_data)
+
+
+class LoadBalancerManager(_BaseHNVModel):
+
+    """Model for load balancer manager.
+
+    The LoadBalancerManager resource is a singleton resource that configures
+    the load balancing service of the Network Controller.
+    """
+
+    _endpoint = "/networking/v1/loadBalancerManager/config"
+
+    manager_ip_address = model.Field(
+        name="manager_ip_address", key="loadBalancerManagerIPAddress",
+        is_property=True, is_required=True, is_read_only=False)
+    """The IP address of the load balancer service. This is part of one of
+    the FrontendIPPools as specified in the FrontendIPPool element in this
+    resource."""
+
+    outbound_nat_ip = model.Field(
+        name="outbound_nat_ip", key="outboundNatIPExemptions",
+        is_property=True, is_required=True, is_read_only=False)
+    """An array of v4 or v6 subnets masks with prefixes that will not have
+    the source IP and Port changed by being NAT-ed. This is typically used
+    for datacenter services that will communicated with other services within
+    the same datacenter or cluster. Array of strings in the following format:
+    0.0.0.0/0.
+
+    NOTE: There is no validation that these IP addresses are known by the
+    Network Controller."""
+
+    vip_ip_pools = model.Field(
+        name="vip_ip_pools", key="vipIpPools",
+        is_property=True, is_required=True, is_read_only=False)
+    """An array of references to ipPool resource that will be used for the
+    frontend IP Addresses.
+    """
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data.get("properties", {})
+
+        vip_ip_pools = []
+        for raw_content in properties.get("vipIpPools", []):
+            resource = Resource.from_raw_data(raw_content)
+            vip_ip_pools.append(resource)
+        properties["vipIpPools"] = vip_ip_pools
+
+        return super(LoadBalancerManager, cls).from_raw_data(raw_data)

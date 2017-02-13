@@ -384,3 +384,8 @@ class TestClient(unittest.TestCase):
             raw_data["parentResourceID"] = "fake-parent-id"
             self._test_get_resource(model=client.BGPRouters,
                                     raw_data=raw_data)
+
+    def test_load_balancer_manager(self):
+        raw_data = self._response.load_balancer_manager()
+        self._test_get_resource(model=client.LoadBalancerManager,
+                                raw_data=raw_data)

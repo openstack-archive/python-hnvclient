@@ -1,0 +1,19 @@
+{
+    "resourceRef": "/loadBalancerManager/config",
+    "resourceId": "config",
+    "etag": "W/\"ea4ce83a-3b5c-4b92-90b4-f1a69aa5935f\"",
+    "instanceId": "6a42e935-92bb-4081-a1a7-bac1d772671f",
+    "properties": {
+        "provisioningState": "Succeeded",
+        "loadBalancerManagerIPAddress": "21.0.0.21",
+        "outboundNatIPExemptions": [],
+        "vipIpPools": [
+            {
+                "resourceRef": "/logicalnetworks/ccb732ec-a3b5-4755-99ff-\nfddb91d50884/subnets/262b479f-0952-49b9-ad20-3d6732729389/ipPools/968917ad-8122-447d-90f7-\nbee2f95828c8"
+            },
+            {
+                "resourceRef": "/logicalnetworks/9c1b2b61-dec2-49e3-b573-\nc2ecff57893d/subnets/a4f7c90b-6056-4dff-97fb-f46211ecdc10/ipPools/6b7c0255-c68d-4b2f-9870-\n9757255b55de"
+            }
+        ]
+    }
+}
