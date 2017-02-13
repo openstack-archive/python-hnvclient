@@ -2545,3 +2545,346 @@ class LoadBalancers(_BaseHNVModel):
         properties["probes"] = probes
 
         return super(LoadBalancers, cls).from_raw_data(raw_data)
+
+
+class _BGPPeersStatistics(model.Model):
+
+    """Base model for BGP peers statistics submodels."""
+
+    last_sent = model.Field(
+        name="last_sent", key="lastsent",
+        is_property=False, is_required=False, is_read_only=True)
+    """Last sent timestamp."""
+
+    last_received = model.Field(
+        name="last_received", key="lastReceived",
+        is_property=False, is_required=False, is_read_only=True)
+    """Last received timestamp."""
+
+    sent_count = model.Field(
+        name="sent_count", key="sentCount",
+        is_property=False, is_required=False, is_read_only=True)
+    """Sent count."""
+
+    received_count = model.Field(
+        name="received_count", key="receivedCount",
+        is_property=False, is_required=False, is_read_only=True)
+    """Received count."""
+
+
+class OpenMessageStatistics(_BGPPeersStatistics):
+
+    """Model for open message statistics."""
+
+    pass
+
+
+class NotificationMessageStatistics(_BGPPeersStatistics):
+
+    """Model for notification message statistics."""
+
+    pass
+
+
+class KeepAliveMessageStatistics(_BGPPeersStatistics):
+
+    """Model for keep alive message statistics."""
+
+    pass
+
+
+class RouteRefreshMessageStatistics(_BGPPeersStatistics):
+
+    """Model for route regresh message statistics."""
+
+    pass
+
+
+class UpdateMessageStatistics(_BGPPeersStatistics):
+
+    """Model for update message statistics."""
+
+    pass
+
+
+class _StatisticsRoute(model.Model):
+
+    """Base model for IPV4 and IPV6 route statistics."""
+
+    update_sent_count = model.Field(
+        name="update_sent_count", key="updateSentCount",
+        is_property=False, is_required=False, is_read_only=True)
+    """Route update sent count."""
+
+    update_received_count = model.Field(
+        name="update_received_count", key="updateReceivedCount",
+        is_property=False, is_required=False, is_read_only=True)
+    """Route update received count."""
+
+    withdrawl_sent_count = model.Field(
+        name="withdraw_sent_count", key="withdrawlSentCount",
+        is_property=False, is_required=False, is_read_only=True)
+    """Route withdrawal sent count."""
+
+    withdrawl_received_count = model.Field(
+        name="withdraw_received_count", key="withdrawlReceivedCount",
+        is_property=False, is_required=False, is_read_only=True)
+    """Route withdrawal received count."""
+
+
+class IPV4Route(_StatisticsRoute):
+
+    """Stats for IPv4 routes."""
+
+    pass
+
+
+class IPV6Route(_StatisticsRoute):
+
+    """Stats for IPv6 routes."""
+
+    pass
+
+
+class BGPPeersStatistics(model.Model):
+
+    """Provides statistics for this peer."""
+
+    tcp_connection_established = model.Field(
+        name="tcp_connection_established", key="tcpConnectionEstablished",
+        is_property=False, is_required=False, is_read_only=True)
+    """Timestamp of TCP connection establishment for BGP."""
+
+    tcp_connection_closed = model.Field(
+        name="tcp_connection_closed", key="tcpConnectionClosed",
+        is_property=False, is_required=False, is_read_only=True)
+    """Timestamp of TCP connection closed for BGP."""
+
+    open_message_stats = model.Field(
+        name="open_message_stats", key="openMessageStats",
+        is_property=False, is_required=False, is_read_only=True)
+    """Instance of OpenMessageStatistics."""
+
+    notification_message_stats = model.Field(
+        name="notification_message_stats", key="notificationMessageStats",
+        is_property=False, is_required=False, is_read_only=True)
+    """Instance of NotificationMessageStatistics."""
+
+    keep_alive_message_stats = model.Field(
+        name="keep_alive_message_stats", key="keepAliveMessageStats",
+        is_property=False, is_required=False, is_read_only=True)
+    """Instance of KeepAliveMessageStatistics."""
+
+    route_refresh_message_stats = model.Field(
+        name="route_refresh_message_stats", key="routeRefreshMessageStats",
+        is_property=False, is_required=False, is_read_only=True)
+    """Instance of RouteRefreshMessageStatistics."""
+
+    update_message_stats = model.Field(
+        name="update_message_stats", key="updateMessageStats",
+        is_property=False, is_required=False, is_read_only=True)
+    """Instance of UpdateMessageStatistics."""
+
+    ipv4_route_stats = model.Field(
+        name="ipv4_route_stats", key="ipv4Route",
+        is_property=False, is_required=False, is_read_only=True)
+    """Stats for IPv4 routes."""
+
+    ipv6_route_stats = model.Field(
+        name="ipv6_route_stats", key="ipv6Route",
+        is_property=False, is_required=False, is_read_only=True)
+    """Stats for IPv6 routes."""
+
+    last_updated = model.Field(
+        name="last_updated", key="lastUpdated",
+        is_property=False, is_required=False, is_read_only=True)
+    """Time stamp when the stats were last updated."""
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+
+        # pylint: disable=redefined-variable-type
+
+        raw_content = raw_data.get("updateMessageStats", None)
+        if raw_content is not None:
+            statistics = UpdateMessageStatistics.from_raw_data(raw_content)
+            raw_data["updateMessageStats"] = statistics
+
+        raw_content = raw_data.get("routeRefreshMessageStats", None)
+        if raw_content is not None:
+            statistics = RouteRefreshMessageStatistics.from_raw_data(
+                raw_content)
+            raw_data["routeRefreshMessageStats"] = statistics
+
+        raw_content = raw_data.get("keepAliveMessageStats", None)
+        if raw_content is not None:
+            statistics = KeepAliveMessageStatistics.from_raw_data(raw_content)
+            raw_data["keepAliveMessageStats"] = statistics
+
+        raw_content = raw_data.get("notificationMessageStats", None)
+        if raw_content is not None:
+            statistics = NotificationMessageStatistics.from_raw_data(
+                raw_content)
+            raw_data["notificationMessageStats"] = statistics
+
+        raw_content = raw_data.get("openMessageStats", None)
+        if raw_content is not None:
+            statistics = OpenMessageStatistics.from_raw_data(raw_content)
+            raw_data["openMessageStats"] = statistics
+
+        raw_content = raw_data.get("ipv4Route", None)
+        if raw_content is not None:
+            statistics = IPV4Route.from_raw_data(raw_content)
+            raw_data["ipv4Route"] = statistics
+
+        raw_content = raw_data.get("ipv6Route", None)
+        if raw_content is not None:
+            statistics = IPV6Route.from_raw_data(raw_content)
+            raw_data["ipv6Route"] = statistics
+
+        return super(BGPPeersStatistics, cls).from_raw_data(raw_data)
+
+
+class BGPPeers(_BaseHNVModel):
+
+    """Model for BGP peers.
+
+    This resource configures BGP peers of the virtualGateways resource.
+    The peer is identified by remoteRouterId and asNumber. A VRF context
+    can be specified on devices that support VRF. The routeMapIn and
+    routeMapOut properties can specify a policy map that controls the
+    route updates that are associated with the BGP peer.
+    """
+
+    _endpoint = ("/networking/v1/virtualGateways/{grandparent_id}"
+                 "/bgpRouters/{parent_id}/bgpPeers/{resource_id}")
+
+    parent_id = model.Field(
+        name="parent_id", key="parentResourceID",
+        is_property=False, is_required=False, is_read_only=True)
+    """The parent resource ID field contains the resource ID that is
+    associated with network objects that are ancestors of the necessary
+    resource.
+    """
+
+    grandparent_id = model.Field(
+        name="grandparent_id", key="grandParentResourceID",
+        is_property=False, is_required=False, is_read_only=True)
+    """The grand parent resource ID field contains the resource ID that
+    is associated with network objects that are ancestors of the parent
+    of the necessary resource."""
+
+    connection_state = model.Field(
+        name="connection_state", key="connectionState",
+        is_required=False, is_read_only=True)
+    """Status of BGP peering for this peer. Possible values are `Connected` and
+    `Disconnected`."""
+
+    asn_number = model.Field(name="asn_number", key="asNumber",
+                             is_required=False, is_read_only=True)
+    """Indicates the ASN number of the BGP Peer."""
+
+    ext_asn_number = model.Field(name="ext_asn_number", key="extAsNumber",
+                                 is_required=False, is_read_only=False)
+    """Indicates Extended ASN number of the BGP Peer in XX.YY format."""
+
+    peer_ip_address = model.Field(name="peer_ip_address", key="peerIpAddress",
+                                  is_required=False, is_read_only=False)
+    """IP address of the peer."""
+
+    statistics = model.Field(name="statistics", key="statistics",
+                             is_required=False, is_read_only=True)
+    """Provides statistics for this peer."""
+
+    policy_map_out = model.Field(name="policy_map_out", key="policyMapOut",
+                                 is_required=False, is_read_only=False)
+    """Reference to the policy map object that is used to filter
+    the routing updates sent to the peer."""
+
+    policy_map_in = model.Field(name="policy_map_in", key="policyMapIn",
+                                is_required=False, is_read_only=False)
+    """Reference to the policy map object that is used to filter
+    routing updates received from the peer."""
+
+    is_generated = model.Field(name="is_generated", key="isGenerated",
+                               is_required=False, is_read_only=True)
+    """This flag is set to `True` for iBGP peers."""
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data.get("properties", {})
+
+        raw_content = properties.get("statistics", None)
+        if raw_content is not None:
+            statistics = BGPPeersStatistics.from_raw_data(raw_content)
+            properties["statistics"] = statistics
+
+        super(BGPPeers, cls).from_raw_data(raw_data)
+
+
+class BGPRouters(_BaseHNVModel):
+
+    """Model for BGP routers.
+
+    The BGP Router resource contains the configuration needed for the Border
+    Gateway Protocol (BGP) router in the virtual gateway to connect to BGP
+    routers outside the virtual network in order to exchange routing
+    information.
+    """
+
+    _endpoint = ("/networking/v1/virtualGateways/{parent_id}"
+                 "/bgpRouters/{resource_id}")
+
+    parent_id = model.Field(name="parent_id",
+                            key="parentResourceID",
+                            is_property=False, is_required=True,
+                            is_read_only=True)
+    """The parent resource ID field contains the resource ID that is
+    associated with network objects that are ancestors of the necessary
+    resource.
+    """
+
+    require_igp_sync = model.Field(
+        name="require_igp_sync", key="requireIgpSync",
+        is_required=True, is_read_only=False)
+
+    is_enabled = model.Field(name="is_enabled", key="isEnabled",
+                             is_required=True, is_read_only=False)
+
+    is_generated = model.Field(name="is_generated", key="isGenerated",
+                               is_required=False, is_read_only=True)
+    """If this BGP router is automatically enabled, without making any REST
+    calls then isGenerated is set to `True`."""
+
+    ext_as_number = model.Field(name="ext_as_number", key="extAsNumber",
+                                is_required=False, is_read_only=False)
+    """Extended (4-byte) ASN of the local BGP Router in XX.YY format."""
+
+    router_id = model.Field(name="router_id", key="routerId",
+                            is_required=False, is_read_only=False)
+    """Indicates Router ID."""
+
+    router_ip = model.Field(
+        name="router_ip", key="routerIP",
+        is_required=False, is_read_only=False)
+    """Indicates IP addresses to which BGP peering can be established."""
+
+    bgp_peers = model.Field(name="bgp_peers", key="bgpPeers",
+                            is_required=False, is_read_only=False)
+    """Collection of BGP peers associated with the BGP Routers resource."""
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data.get("properties", {})
+
+        bgp_peers = []
+        for raw_content in properties.get("bgpPeers", []):
+            raw_content["parentResourceID"] = raw_data["resourceId"]
+            raw_content["grandParentResourceID"] = raw_data["parentResourceID"]
+            bgp_peers.append(BGPPeers.from_raw_data(raw_content))
+        properties["bgpPeers"] = bgp_peers
+
+        return super(BGPRouters, cls).from_raw_data(raw_data)

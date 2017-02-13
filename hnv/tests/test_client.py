@@ -368,3 +368,18 @@ class TestClient(unittest.TestCase):
         for raw_data in resources.get("value", []):
             self._test_get_resource(model=client.LoadBalancers,
                                     raw_data=raw_data)
+
+    def test_bgp_peers(self):
+        resources = self._response.bgp_peers()
+        for raw_data in resources.get("value", []):
+            raw_data["parentResourceID"] = "fake-parent-id"
+            raw_data["grandParentResourceID"] = "fake-grandparent-id"
+            self._test_get_resource(model=client.BGPPeers,
+                                    raw_data=raw_data)
+
+    def test_bgp_routers(self):
+        resources = self._response.bgp_routers()
+        for raw_data in resources.get("value", []):
+            raw_data["parentResourceID"] = "fake-parent-id"
+            self._test_get_resource(model=client.BGPRouters,
+                                    raw_data=raw_data)
