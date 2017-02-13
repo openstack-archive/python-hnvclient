@@ -45,19 +45,17 @@ class _BaseHNVModel(model.Model):
     the context of the resource if it is a top-level resource, or in the
     context of the direct parent resource if it is a child resource."""
 
-    parent_id = model.Field(name="parent_id",
-                            key="parentResourceID",
-                            is_property=False, is_required=False,
-                            is_read_only=True)
+    parent_id = model.Field(
+        name="parent_id", key="parentResourceID",
+        is_property=False, is_required=False, is_read_only=True)
     """The parent resource ID field contains the resource ID that is
     associated with network objects that are ancestors of the necessary
     resource.
     """
 
-    grandparent_id = model.Field(name="grandparent_id",
-                                 key="grandParentResourceID",
-                                 is_property=False, is_required=False,
-                                 is_read_only=True)
+    grandparent_id = model.Field(
+        name="grandparent_id", key="grandParentResourceID",
+        is_property=False, is_required=False, is_read_only=True)
     """The grand parent resource ID field contains the resource ID that
     is associated with network objects that are ancestors of the parent
     of the necessary resource."""
@@ -224,9 +222,9 @@ class _BaseHNVModel(model.Model):
         """Get the latest representation of the current model."""
         client = self._get_client()
         endpoint = self._endpoint.format(
-            resource_id=self.resource_id or "", parent_id=self.parent_id or "",
+            resource_id=self.resource_id or "",
+            parent_id=self.parent_id or "",
             grandparent_id=self.grandparent_id or "")
-
         response = client.get_resource(endpoint)
         self._reset_model(response)
 
@@ -251,8 +249,10 @@ class _BaseHNVModel(model.Model):
 
         super(_BaseHNVModel, self).commit(wait=wait, timeout=timeout)
         client = self._get_client()
-        endpoint = self._endpoint.format(resource_id=self.resource_id or "",
-                                         parent_id=self.parent_id or "")
+        endpoint = self._endpoint.format(
+            resource_id=self.resource_id or "",
+            parent_id=self.parent_id or "",
+            grandparent_id=self.grandparent_id or "")
         request_body = self.dump(include_read_only=False)
         response = client.update_resource(endpoint, data=request_body,
                                           if_match=if_match)
@@ -401,21 +401,19 @@ class IPPools(_BaseHNVModel):
     """
 
     _endpoint = ("/networking/v1/logicalNetworks/{grandparent_id}"
-                 "/logicalSubnets/{parent_id}/ipPools/{resource_id}")
+                 "/subnets/{parent_id}/ipPools/{resource_id}")
 
-    parent_id = model.Field(name="parent_id",
-                            key="parentResourceID",
-                            is_property=False, is_required=True,
-                            is_read_only=True)
+    parent_id = model.Field(
+        name="parent_id", key="parentResourceID",
+        is_property=False, is_required=True, is_read_only=True)
     """The parent resource ID field contains the resource ID that is
     associated with network objects that are ancestors of the necessary
     resource.
     """
 
-    grandparent_id = model.Field(name="grandparent_id",
-                                 key="grandParentResourceID",
-                                 is_property=False, is_required=True,
-                                 is_read_only=True)
+    grandparent_id = model.Field(
+        name="grandparent_id", key="grandParentResourceID",
+        is_property=False, is_required=True, is_read_only=True)
     """The grand parent resource ID field contains the resource ID that
     is associated with network objects that are ancestors of the parent
     of the necessary resource."""
@@ -450,10 +448,9 @@ class LogicalSubnetworks(_BaseHNVModel):
     _endpoint = ("/networking/v1/logicalNetworks/{parent_id}"
                  "/logicalSubnets/{resource_id}")
 
-    parent_id = model.Field(name="parent_id",
-                            key="parentResourceID",
-                            is_property=False, is_required=True,
-                            is_read_only=True)
+    parent_id = model.Field(
+        name="parent_id", key="parentResourceID",
+        is_property=False, is_required=True, is_read_only=True)
     """The parent resource ID field contains the resource ID that is
     associated with network objects that are ancestors of the necessary
     resource.
@@ -509,10 +506,10 @@ class LogicalSubnetworks(_BaseHNVModel):
         """Create a new model using raw API response."""
         ip_pools = []
         properties = raw_data["properties"]
-        for raw_ip_pool in properties.get("ipPools", []):
-            raw_ip_pool["parentResourceID"] = raw_data["resourceId"]
-            raw_ip_pool["grandParentResourceID"] = raw_data["parentResourceID"]
-            ip_pools.append(IPPools.from_raw_data(raw_ip_pool))
+        for raw_content in properties.get("ipPools", []):
+            raw_content["parentResourceID"] = raw_data["resourceId"]
+            raw_content["grandParentResourceID"] = raw_data["parentResourceID"]
+            ip_pools.append(IPPools.from_raw_data(raw_content))
         properties["ipPools"] = ip_pools
 
         ip_configurations = []
@@ -521,6 +518,12 @@ class LogicalSubnetworks(_BaseHNVModel):
             ip_configuration = IPConfiguration.from_raw_data(raw_configuration)
             ip_configurations.append(ip_configuration)
         properties["ipConfigurations"] = ip_configurations
+
+        network_interfaces = []
+        for raw_content in properties.get("networkInterfaces", []):
+            resource = Resource.from_raw_data(raw_content)
+            network_interfaces.append(resource)
+        properties["networkInterfaces"] = network_interfaces
 
         return super(LogicalSubnetworks, cls).from_raw_data(raw_data)
 
@@ -584,10 +587,9 @@ class IPConfiguration(_BaseHNVModel):
     _endpoint = ("/networking/v1/networkInterfaces/{parent_id}"
                  "/ipConfigurations/{resource_id}")
 
-    parent_id = model.Field(name="parent_id",
-                            key="parentResourceID",
-                            is_property=False, is_required=True,
-                            is_read_only=True)
+    parent_id = model.Field(
+        name="parent_id", key="parentResourceID",
+        is_property=False, is_required=True, is_read_only=True)
     """The parent resource ID field contains the resource ID that is
     associated with network objects that are ancestors of the necessary
     resource.
@@ -863,10 +865,9 @@ class SubNetworks(_BaseHNVModel):
     _endpoint = ("/networking/v1/virtualNetworks/{parent_id}"
                  "/subnets/{resource_id}")
 
-    parent_id = model.Field(name="parent_id",
-                            key="parentResourceID",
-                            is_property=False, is_required=True,
-                            is_read_only=True)
+    parent_id = model.Field(
+        name="parent_id", key="parentResourceID",
+        is_property=False, is_required=True, is_read_only=True)
     """The parent resource ID field contains the resource ID that is
     associated with network objects that are ancestors of the necessary
     resource.
@@ -1022,10 +1023,9 @@ class ACLRules(_BaseHNVModel):
     _endpoint = ("/networking/v1/accessControlLists/{parent_id}"
                  "/aclRules/{resource_id}")
 
-    parent_id = model.Field(name="parent_id",
-                            key="parentResourceID",
-                            is_property=False, is_required=True,
-                            is_read_only=True)
+    parent_id = model.Field(
+        name="parent_id", key="parentResourceID",
+        is_property=False, is_required=True, is_read_only=True)
     """The parent resource ID field contains the resource ID that is
     associated with network objects that are ancestors of the necessary
     resource.
@@ -1239,10 +1239,9 @@ class Routes(_BaseHNVModel):
 
     _endpoint = "/networking/v1/routeTables/{parent_id}/routes/{resource_id}"
 
-    parent_id = model.Field(name="parent_id",
-                            key="parentResourceID",
-                            is_property=False, is_required=False,
-                            is_read_only=True)
+    parent_id = model.Field(
+        name="parent_id", key="parentResourceID",
+        is_property=False, is_required=True, is_read_only=True)
     """The parent resource ID field contains the resource ID that is
     associated with network objects that are ancestors of the necessary
     resource.
@@ -1656,10 +1655,9 @@ class NetworkConnections(_BaseHNVModel):
     _endpoint = ("/networking/v1/virtualGateways/{parent_id}"
                  "/networkConnections/{resource_id}")
 
-    parent_id = model.Field(name="parent_id",
-                            key="parentResourceID",
-                            is_property=False, is_required=True,
-                            is_read_only=True)
+    parent_id = model.Field(
+        name="parent_id", key="parentResourceID",
+        is_property=False, is_required=True, is_read_only=True)
     """The parent resource ID field contains the resource ID that is
     associated with network objects that are ancestors of the necessary
     resource.
@@ -1866,6 +1864,18 @@ class PublicIPAddresses(_BaseHNVModel):
     associated. Private ip can be defined on NIC, loadBalancers, or
     gateways.
     """
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data.get("properties", {})
+
+        raw_content = properties.get("ipConfiguration", None)
+        if raw_content is not None:
+            resource = Resource.from_raw_data(raw_content)
+            properties["ipConfiguration"] = resource
+
+        return super(PublicIPAddresses, cls).from_raw_data(raw_data)
 
 
 class BackendAddressPools(_BaseHNVModel):
@@ -2837,10 +2847,9 @@ class BGPRouters(_BaseHNVModel):
     _endpoint = ("/networking/v1/virtualGateways/{parent_id}"
                  "/bgpRouters/{resource_id}")
 
-    parent_id = model.Field(name="parent_id",
-                            key="parentResourceID",
-                            is_property=False, is_required=True,
-                            is_read_only=True)
+    parent_id = model.Field(
+        name="parent_id", key="parentResourceID",
+        is_property=False, is_required=True, is_read_only=True)
     """The parent resource ID field contains the resource ID that is
     associated with network objects that are ancestors of the necessary
     resource.
