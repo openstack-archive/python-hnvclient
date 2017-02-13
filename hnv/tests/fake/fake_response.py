@@ -89,3 +89,31 @@ class FakeResponse(object):
     def public_ip_addresses(self):
         """Fake GET(all) response for public IP addresses."""
         return self._load_resource("public_ip_addresses.json")
+
+    def backend_address_pools(self):
+        """Fake GET(all) response for backend address pools."""
+        return self._load_resource("backend_address_pools.json")
+
+    def frontend_ip_configurations(self):
+        """Fake GET(all) response for frontend ip configurations."""
+        return self._load_resource("frontend_ip_configurations.json")
+
+    def inbound_nat_rules(self):
+        """Fake GET(all) response for inbound nat rules."""
+        return self._load_resource("inbound_nat_rules.json")
+
+    def load_balancing_rules(self):
+        """Fake GET(all) response for load balacing rules."""
+        return self._load_resource("load_balancing_rules.json")
+
+    def outbound_nat_rules(self):
+        """Fake GET(all) response for outbound nat rules."""
+        return self._load_resource("outbound_nat_rules.json")
+
+    def probes(self):
+        """Fake GET(all) response for probes."""
+        return self._load_resource("probes.json")
+
+    def load_balancers(self):
+        """Fake GET(all) response for load balancers."""
+        return self._load_resource("load_balancers.json")

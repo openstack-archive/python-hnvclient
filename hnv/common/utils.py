@@ -104,13 +104,19 @@ class _HNVClient(object):
         else:
             return not self._https_allow_insecure
 
-    def _http_request(self, resource, method=constant.GET, body=None):
-        url = requests.compat.urljoin(self._base_url, resource)
+    def _http_request(self, resource, method=constant.GET, body=None,
+                      if_match=None):
+        if not resource.startswith("http"):
+            url = requests.compat.urljoin(self._base_url, resource)
+        else:
+            url = resource
+
         headers = self._get_headers()
         if method in (constant.PUT, constant.PATCH):
-            etag = (body or {}).get("etag", None)
-            if etag is not None:
-                headers["If-Match"] = etag
+            if not isinstance(if_match, six.string_types):
+                if_match = (body or {}).get("etag", None)
+            if if_match is not None:
+                headers["If-Match"] = if_match
 
         attemts = 0
         while True:
@@ -162,9 +168,10 @@ class _HNVClient(object):
         except ValueError:
             raise exception.ServiceException("Invalid service response.")
 
-    def update_resource(self, path, data):
+    def update_resource(self, path, data, if_match=None):
         """Update the required resource."""
-        response = self._http_request(path, method="PUT", body=data)
+        response = self._http_request(resource=path, method="PUT", body=data,
+                                      if_match=if_match)
         try:
             return response.json()
         except ValueError:

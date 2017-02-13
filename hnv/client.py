@@ -132,6 +132,33 @@ class _BaseHNVModel(model.Model):
                                 ca_bundle=CONFIG.HNV.https_ca_bundle)
 
     @classmethod
+    def _get_all(cls, parent_id=None, grandparent_id=None):
+        """Retrives all the required resources."""
+        client = cls._get_client()
+        endpoint = cls._endpoint.format(resource_id="",
+                                        parent_id=parent_id or "",
+                                        grandparent_id=grandparent_id or "")
+        resources = []
+        while True:
+            raw_data = client.get_resource(endpoint)
+            for item in raw_data.get("value", []):
+                resources.append(cls.from_raw_data(item))
+            endpoint = raw_data.get("nextLink")
+            if not endpoint:
+                break
+        return resources
+
+    @classmethod
+    def _get(cls, resource_id, parent_id, grandparent_id):
+        """"Retrieves the required resource."""
+        client = cls._get_client()
+        endpoint = cls._endpoint.format(resource_id=resource_id or "",
+                                        parent_id=parent_id or "",
+                                        grandparent_id=grandparent_id or "")
+        raw_data = client.get_resource(endpoint)
+        return cls.from_raw_data(raw_data)
+
+    @classmethod
     def get(cls, resource_id=None, parent_id=None, grandparent_id=None):
         """Retrieves the required resources.
 
@@ -143,15 +170,11 @@ class _BaseHNVModel(model.Model):
                                  network objects that are ancestors of the
                                  parent of the necessary resource.
         """
-        client = cls._get_client()
-        endpoint = cls._endpoint.format(resource_id=resource_id or "",
-                                        parent_id=parent_id or "",
-                                        grandparent_id=grandparent_id or "")
-        raw_data = client.get_resource(endpoint)
-        if resource_id is None:
-            return [cls.from_raw_data(item) for item in raw_data["value"]]
+
+        if not resource_id:
+            return cls._get_all(parent_id, grandparent_id)
         else:
-            return cls.from_raw_data(raw_data)
+            return cls._get(resource_id, parent_id, grandparent_id)
 
     @classmethod
     def remove(cls, resource_id, parent_id=None, grandparent_id=None,
@@ -207,7 +230,7 @@ class _BaseHNVModel(model.Model):
         response = client.get_resource(endpoint)
         self._reset_model(response)
 
-    def commit(self, wait=True, timeout=None):
+    def commit(self, if_match=None, wait=True, timeout=None):
         """Apply all the changes on the current model.
 
         :param wait:    Whether to wait until the operation is completed
@@ -231,7 +254,8 @@ class _BaseHNVModel(model.Model):
         endpoint = self._endpoint.format(resource_id=self.resource_id or "",
                                          parent_id=self.parent_id or "")
         request_body = self.dump(include_read_only=False)
-        response = client.update_resource(endpoint, data=request_body)
+        response = client.update_resource(endpoint, data=request_body,
+                                          if_match=if_match)
 
         elapsed_time = 0
         while wait:
@@ -252,6 +276,10 @@ class _BaseHNVModel(model.Model):
         else:
             self._reset_model(response)
 
+        # NOTE(alexcoman): In order to keep backwards compatibility the
+        # `method: commit` will return a reference to itself.
+        # An example for that can be the following use case:
+        # label = client.Model().commit()
         return self
 
     @classmethod
@@ -573,7 +601,7 @@ class IPConfiguration(_BaseHNVModel):
 
     backend_address_pools = model.Field(
         name="backend_address_pools", key="loadBalancerBackendAddressPools",
-        is_required=False, is_read_only=True)
+        is_required=False, is_read_only=False)
     """Reference to backendAddressPools child resource of loadBalancers
     resource."""
 
@@ -1177,7 +1205,7 @@ class VirtualSwitchManager(_BaseHNVModel):
                                is_required=False)
 
     def __init__(self, **fields):
-        qos_settings = fields.pop("qos_settings", {})
+        qos_settings = fields.get("qos_settings", {})
         if not isinstance(qos_settings, VirtualSwtichQosSettings):
             fields["qos_settings"] = VirtualSwtichQosSettings.from_raw_data(
                 raw_data=qos_settings)
@@ -1469,7 +1497,7 @@ class IPSecConfiguration(model.Model):
     @classmethod
     def from_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
-        raw_main = raw_data.pop("mainMode", None)
+        raw_main = raw_data.get("mainMode", None)
         if raw_main is not None:
             main_mode = MainMode.from_raw_data(raw_main)
             raw_data["mainMode"] = main_mode
@@ -1838,3 +1866,682 @@ class PublicIPAddresses(_BaseHNVModel):
     associated. Private ip can be defined on NIC, loadBalancers, or
     gateways.
     """
+
+
+class BackendAddressPools(_BaseHNVModel):
+
+    """Model for backend address pools.
+
+    This resource represents the list of IPs that can receive network traffic
+    that comes via the front-end IPs. The Load Balancing MUX handles incoming
+    traffic via the front-end IPs and distributes them to backend IPs based
+    on load balancing configuration.
+    """
+
+    _endpoint = ("/networking/v1/loadBalancers/{parent_id}"
+                 "/backendAddressPools/{resource_id}")
+
+    parent_id = model.Field(
+        name="parent_id", key="parentResourceID",
+        is_property=False, is_required=True, is_read_only=True)
+    """The parent resource ID field contains the resource ID that is
+    associated with network objects that are ancestors of the necessary
+    resource.
+    """
+
+    backend_ip_configurations = model.Field(
+        name="backend_ip_configurations", key="backendIPConfigurations",
+        is_required=False, is_read_only=False)
+    """Indicates an array of references to ipConfiguration Resources.
+
+    There is no restriction on having the same IP configurations in multiple
+    backendAddressPools. An IpConfiguration can become a part of a
+    backendAddressPool by setting a reference to a backendAddressPool resource
+    in the loadBalancerBackendAddressPools array field on the IpConfiguration
+    resource.
+    """
+
+    load_balancing_rules = model.Field(name="load_balancing_rules",
+                                       key="loadBalancingRules",
+                                       is_required=False, is_read_only=False)
+    """Indicates an array of references to the set of loadBalancingRules
+    resources that use this backend address pool.
+    """
+
+    outbound_nat_rules = model.Field(name="outbound_nat_rules",
+                                     key="outboundNatRules",
+                                     is_required=False, is_read_only=False)
+    """Indicates an array of references to the set of outboundNatRules
+    resources that use this backend address pool."""
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data.get("properties", {})
+
+        backend_ip_configurations = []
+        for raw_content in properties.get("backendIPConfigurations", []):
+            resource = Resource.from_raw_data(raw_content)
+            backend_ip_configurations.append(resource)
+        properties["backendIPConfigurations"] = backend_ip_configurations
+
+        load_balancing_rules = []
+        for raw_content in properties.get("loadBalancingRules", []):
+            resource = Resource.from_raw_data(raw_content)
+            load_balancing_rules.append(resource)
+        properties["loadBalancingRules"] = load_balancing_rules
+
+        outbound_nat_rules = []
+        for raw_content in properties.get("outboundNatRules", []):
+            resource = Resource.from_raw_data(raw_content)
+            outbound_nat_rules.append(resource)
+        properties["outboundNatRules"] = outbound_nat_rules
+
+        return super(BackendAddressPools, cls).from_raw_data(raw_data)
+
+
+class FrontendIPConfigurations(_BaseHNVModel):
+
+    """Model for frontend ip configurations.
+
+    This resource represents the frontend IP addresses of the load balancer.
+    Either a publicIPAddress or a privateIPAddress and subnet must
+    be configured.
+    """
+
+    _endpoint = ("/networking/v1/loadBalancers/{parent_id}"
+                 "/frontendIpConfigurations/{resource_id}")
+
+    parent_id = model.Field(
+        name="parent_id", key="parentResourceID",
+        is_property=False, is_required=True, is_read_only=True)
+    """The parent resource ID field contains the resource ID that is
+    associated with network objects that are ancestors of the necessary
+    resource.
+    """
+
+    inbound_nat_rules = model.Field(
+        name="inbound_nat_rules", key="inboundNatRules",
+        is_required=False, is_read_only=True)
+    """Indicates a reference to the inboundNatRules resource used by
+    the frontEndIpConfiguration."""
+
+    load_balancing_rules = model.Field(
+        name="load_balancing_rules", key="loadBalancingRules",
+        is_required=False, is_read_only=False)
+    """Indicates a reference to the loadBalancingRules resource used
+    by the frontEndIpConfiguration."""
+
+    outbound_nat_rules = model.Field(
+        name="outbound_nat_rules", key="outboundNatRules",
+        is_required=False, is_read_only=True)
+    """Indicates a reference to the outboundNatRules resource used by
+    the frontEndIpConfiguration."""
+
+    public_ip_address = model.Field(
+        name="public_ip_address", key="publicIPAddress",
+        is_required=False, is_read_only=False)
+    """Indicates a reference to the publicIPAddresses resource used by
+    the frontEndIpConfiguration. If a publicIPAddress is specified,
+    then a privateIPaddress is not specified. When a
+    publicIPAddress is specified, the privateIpAllocationMethod is
+    set to Dynamic.
+    """
+
+    private_ip_address = model.Field(name="private_ip_address",
+                                     key="privateIPAddress",
+                                     is_required=False, is_read_only=False)
+    """This is only specified if a specific private IP address identifies an
+    IP address which is statically configured for use with this
+    frontendIpConfiguration.
+
+    PrivateIPAllocation method MUST be allocated static for this case.
+    If a privateIPAddress is specified, a reference to a publicIPaddress
+    cannot be specified at the same time. privateIPAddresses can be either
+    from the infrastructure address space or from a tenant address space,
+    in either case they MUST be accompanied with a valid subnet specified in
+    subnet element reference.
+    """
+
+    private_ip_allocation_method = model.Field(
+        name="private_ip_allocation_method", key="privateIPAllocationMethod",
+        is_required=False, is_read_only=False)
+    """Static or Dynamic."""
+
+    subnet = model.Field(name="subnet", key="subnet",
+                         is_required=False, is_read_only=False)
+    """Indicates a references to the subnet resource used by the
+    frontendIpConfiguration resource. MUST be specified if a
+    privateIPaddress is specified.
+    A subnet reference to a logical network subnet is needed if the
+    privateIpAddress is from the infrastructure address space. A
+    subnet reference to a virtual network subnet is needed if the
+    privateIpAddress is from a tenant address space.
+    The subnet MUST include the IP address specified in
+    privateIpAddress.
+    """
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data.get("properties", {})
+
+        load_balancing_rules = []
+        for raw_content in properties.get("loadBalancingRules", []):
+            resource = Resource.from_raw_data(raw_content)
+            load_balancing_rules.append(resource)
+        properties["loadBalancingRules"] = load_balancing_rules
+
+        inbound_nat_rules = []
+        for raw_content in properties.get("inboundNatRules", []):
+            resource = Resource.from_raw_data(raw_content)
+            inbound_nat_rules.append(resource)
+        properties["inboundNatRules"] = inbound_nat_rules
+
+        outbound_nat_rules = []
+        for raw_content in properties.get("outboundNatRules", []):
+            resource = Resource.from_raw_data(raw_content)
+            outbound_nat_rules.append(resource)
+        properties["outboundNatRules"] = outbound_nat_rules
+
+        raw_content = properties.get("subnet", None)
+        if raw_content is not None:
+            resource = Resource.from_raw_data(raw_content)
+            properties["subnet"] = resource
+
+        return super(FrontendIPConfigurations, cls).from_raw_data(raw_data)
+
+
+class InboundNATRules(_BaseHNVModel):
+
+    """Model for inbound nat rules.
+
+    This resource is used to configure the load balancer to apply
+    Network Address Translation of inbound traffic.
+    """
+
+    _endpoint = ("/networking/v1/loadBalancers/{parent_id}"
+                 "/inboundNatRules/{resource_id}")
+
+    parent_id = model.Field(
+        name="parent_id", key="parentResourceID",
+        is_property=False, is_required=True, is_read_only=True)
+    """The parent resource ID field contains the resource ID that is
+    associated with network objects that are ancestors of the necessary
+    resource.
+    """
+
+    backend_ip_configuration = model.Field(
+        name="backend_ip_configuration", key="backendIPConfiguration",
+        is_required=False, is_read_only=False)
+    """Indicates a references to backendAddressPool resource. Traffic
+    sent to frontendPort of each of the frontendIPConfigurations is
+    forwarded to the backend IP.
+    """
+
+    backend_port = model.Field(name="backend_port", key="backendPort",
+                               is_required=False, is_read_only=False)
+    """Indicates a port used for internal connections on the endpoint.
+    The localPort attribute maps the external port on the endpoint
+    to an internal port on a role. This is useful in scenarios where a
+    role has to communicate to an internal component on a port
+    that different from the one that is exposed externally.
+    Possible values range between 1 and 65535, inclusive.
+    This parameter is required if the protocol is TCP or UDP.
+    """
+
+    frontend_ip_configurations = model.Field(
+        name="frontend_ip_configurations", key="frontendIPConfigurations",
+        is_required=True, is_read_only=False)
+    """Indicates an array of references to frontendIPConfigurations
+    resources."""
+
+    frontend_port = model.Field(name="frontend_port", key="frontendPort",
+                                is_required=False, is_read_only=False)
+    """The port for the external endpoint. Any port number can be
+    specified, but the port numbers specified for each role in the
+    service MUST be unique. Possible values range between 1 and
+    65535, inclusive.
+    This parameter must be specified if protocol is TCP or UDP.
+    """
+
+    protocol = model.Field(name="protocol", key="protocol",
+                           is_required=True, is_read_only=False)
+    """Indicates the inbound transport protocol for the external
+    endpoint. Valid values include `UDP`, `TCP`, `GRE`, `ESP` or `ALL`.
+    `ALL` indicates a wildcard.
+    """
+
+    idle_timeout = model.Field(name="idle_timeout",
+                               key="idleTimeoutInMinutes",
+                               is_required=False, is_read_only=False)
+    """Specifies the timeout for the TCP idle connection.
+
+    The value can be set between 4 and 30 minutes. The default is 4
+    minutes. If public IP is used as a frontend IP of a Load Balancer
+    this value is ignored.
+    """
+
+    floating_ip = model.Field(name="floating_ip", key="enableFloatingIP",
+                              is_required=False, is_read_only=False)
+    """
+    This specifies that a floating IP will be used on the available servers
+    behind a load balancer. Floating IP (VIP) will be forwarded by the load
+    balancer to the backend server. The back-end server will be configured
+    with that VIP, a datacenter IP and weakhost forwarding.
+
+    Floating IP configuration is required if you are using the SQL AlwaysOn
+    Availability Group feature. This setting can't be changed after you create
+    the endpoint.
+    """
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data.get("properties", {})
+
+        raw_ip_configuration = properties.get("backendIPConfiguration", [])
+        if isinstance(raw_ip_configuration, dict):
+            raw_ip_configuration = [raw_ip_configuration]
+
+        for raw_content in raw_ip_configuration:
+            backend_ip_configuration = Resource.from_raw_data(raw_content)
+            properties["backendIPConfiguration"] = backend_ip_configuration
+
+        frontend_ip_configurations = []
+        for raw_content in properties.get("frontendIPConfigurations", []):
+            resource = Resource.from_raw_data(raw_content)
+            frontend_ip_configurations.append(resource)
+        properties["frontendIPConfigurations"] = frontend_ip_configurations
+
+        return super(InboundNATRules, cls).from_raw_data(raw_data)
+
+
+class LoadBalancingRules(_BaseHNVModel):
+
+    """Model for load balancing rules.
+
+    This resource is used to configure load balancing policies. The policies
+    dictate the kind of traffic that is load-balanced, and port mapping
+    between frontend IPs and backend IPs.
+    """
+
+    _endpoint = ("/networking/v1/loadBalancers/{parent_id}"
+                 "/loadBalancingRules/{resource_id}")
+
+    parent_id = model.Field(
+        name="parent_id", key="parentResourceID",
+        is_property=False, is_required=True, is_read_only=True)
+    """The parent resource ID field contains the resource ID that is
+    associated with network objects that are ancestors of the necessary
+    resource.
+    """
+
+    backend_address_pool = model.Field(
+        name="backend_address_pool", key="backendAddressPool",
+        is_required=False, is_read_only=False)
+    """Indicates an array of references to a BackendAddressPool resource.
+
+    Inbound traffic is randomly load balanced across IPs in the backend pool.
+    """
+
+    backend_port = model.Field(name="backend_port", key="backendPort",
+                               is_required=False, is_read_only=False)
+    """Indicates the port used for internal connections on the endpoint.
+
+    The localPort attribute maps the external port on the endpoint to an
+    internal port on a role. This is useful in scenarios where a role has
+    to communicate to an internal component on a port that different from
+    the one that is exposed externally. If not specified, the value of
+    localPort is the same as the port attribute. Set the value of localPort
+    to "*" to automatically assign an unallocated port that is discoverable
+    using the runtime API.
+    Possible values range between 1 and 65535, inclusive.
+    This parameter is required if the protocol is TCP or UDP.
+    """
+
+    frontend_ip_configurations = model.Field(
+        name="frontend_ip_configurations", key="frontendIPConfigurations",
+        is_required=True, is_read_only=False)
+    """Indicates an array of references to FrontendIPAddress resources."""
+
+    frontend_port = model.Field(name="frontend_port", key="frontendPort",
+                                is_required=False, is_read_only=False)
+    """Indicates the port for the external endpoint.
+
+    Possible values range between 1 and 65535, inclusive. This value MUST
+    be unique for the loadbalancer resource.
+    This parameter is required if the protocol is TCP or UDP.
+    """
+
+    idle_timeout = model.Field(
+        name="idle_timeout", key="idleTimeoutInMinutes",
+        is_required=False, is_read_only=False)
+    """Indicates the timeout for the Tcp idle connection in the inbound
+    direction, i.e. a connection initiated by an internet client to a VIP.
+    The value can be set between 4 and 30 minutes. The default value is
+    4 minutes.
+    """
+
+    protocol = model.Field(name="protocol", key="protocol",
+                           is_required=True, is_read_only=False)
+    """Indicates the inbound transport protocol for the external endpoint.
+    Valid values include `UDP`, `TCP`, `GRE`, `ESP` or `ALL`.
+    """
+
+    probe = model.Field(name="probe", key="probe",
+                        is_required=False, is_read_only=False)
+    """Indicates a reference to the probe resource used by this
+    LoadBalancingRule.
+    """
+
+    floating_ip = model.Field(name="floating_ip", key="enableFloatingIP",
+                              is_required=False, is_read_only=False)
+    """
+    This specifies that a floating IP will be used on the available servers
+    behind a load balancer. Floating IP (VIP) will be forwarded by the load
+    balancer to the backend server. The back-end server will be configured
+    with that VIP, a datacenter IP and weakhost forwarding.
+
+    Floating IP configuration is required if you are using the SQL AlwaysOn
+    Availability Group feature. This setting can't be changed after you create
+    the endpoint.
+    """
+
+    load_distribution = model.Field(
+        name="load_distribution", key="loadDistribution",
+        is_required=False, is_read_only=False)
+    """This specifies the load balancing distribution type to be used by
+    the load balancer. The loadBalancer uses a distribution algorithm which
+    is a 5 tuple (source IP, source port, destination IP, destination port,
+    protocol type) hash to map traffic to available servers. It provides
+    stickiness only within a transport session, which is a feature that routes
+    the requests for a particular session to the same physical machine that
+    serviced the first request for that session. Packets in the same TCP or
+    UDP session will be directed to the same datacenter IP instance behind the
+    load balanced endpoint. When the client closes and re-opens the connection
+    or starts a new session from the same source IP, the source port changes
+    and causes the traffic to go to a different datacenter IP endpoint.
+
+    The loadBalancer can be configured to use a 2 tuple (Source IP,
+    Destination IP) or 3 tuple (Source IP, Destination IP, Protocol) to map
+    traffic to the available servers. By using SourceIPProtocol, connections
+    initiated from the same client computer goes to the same datacenter IP
+    endpoint.
+        * Default - The load balancer is configured to use a 5 tuple hash
+    to map traffic to available servers
+        * SourceIP - The load balancer is configured to use a 2 tuple hash
+    to map traffic to available servers
+        * SourceIPProtocol - The load balancer is configured to use a 3 tuple
+    hash to map traffic to available servers
+    """
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data.get("properties", {})
+
+        frontend_ip_configurations = []
+        for raw_content in properties.get("frontendIPConfigurations", []):
+            resource = Resource.from_raw_data(raw_content)
+            frontend_ip_configurations.append(resource)
+        properties["frontendIPConfigurations"] = frontend_ip_configurations
+
+        raw_content = properties.get("backendAddressPool", None)
+        if raw_content is not None:
+            resource = Resource.from_raw_data(raw_content)
+            properties["backendAddressPool"] = resource
+
+        raw_content = properties.get("probe", None)
+        if raw_content is not None:
+            resource = Resource.from_raw_data(raw_content)
+            properties["probe"] = resource
+
+        return super(LoadBalancingRules, cls).from_raw_data(raw_data)
+
+
+class OutboundNATRules(_BaseHNVModel):
+
+    """Model for outbound NAT rules.
+
+    This resource is used to configure the load balancer to apply
+    Network Address Translation of outbound traffic.
+    """
+
+    _endpoint = ("/networking/v1/loadBalancers/{parent_id}"
+                 "/outboundNatRules/{resource_id}")
+
+    parent_id = model.Field(
+        name="parent_id", key="parentResourceID",
+        is_property=False, is_required=True, is_read_only=True)
+    """The parent resource ID field contains the resource ID that is
+    associated with network objects that are ancestors of the necessary
+    resource.
+    """
+
+    frontend_ip_configurations = model.Field(
+        name="frontend_ip_configurations", key="frontendIPConfigurations",
+        is_required=True, is_read_only=False)
+    """Indicates an array of frontendIpConfigurations resources.
+
+    Indicates an array of references to frontendIpAddress resources.
+    """
+
+    backend_address_pool = model.Field(
+        name="backend_address_pool", key="backendAddressPool",
+        is_required=True, is_read_only=False)
+    """Indicates a reference to the backendAddressPool resource.
+
+    This is the pool of IP addresses where outbound traffic originates.
+    """
+
+    protocol = model.Field(
+        name="protocol", key="protocol",
+        is_required=True, is_read_only=False)
+    """Protocol for outbound traffic. For transparent outbound NAT
+    specify "all".
+    Valid values include `TCP`, `UDP`, `GRE`, `ESP` or `All`.
+    """
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data.get("properties", {})
+
+        frontend_ip_configurations = []
+        for raw_content in properties.get("frontendIPConfigurations", []):
+            resource = Resource.from_raw_data(raw_content)
+            frontend_ip_configurations.append(resource)
+        properties["frontendIPConfigurations"] = frontend_ip_configurations
+
+        raw_content = properties.get("backendAddressPool", None)
+        if raw_content is not None:
+            resource = Resource.from_raw_data(raw_content)
+            properties["backendAddressPool"] = resource
+
+        return super(OutboundNATRules, cls).from_raw_data(raw_data)
+
+
+class Probes(_BaseHNVModel):
+
+    """Model for probes."""
+
+    _endpoint = ("/networking/v1/loadBalancers/{parent_id}"
+                 "/probes/{resource_id}")
+
+    parent_id = model.Field(
+        name="parent_id", key="parentResourceID",
+        is_property=False, is_required=True, is_read_only=True)
+    """The parent resource ID field contains the resource ID that is
+    associated with network objects that are ancestors of the necessary
+    resource.
+    """
+
+    interval = model.Field(name="interval", key="intervalInSeconds",
+                           is_required=False, is_read_only=False)
+    """Indicates the interval, in seconds, for how frequently to probe the
+    endpoint for health status. Typically, the interval is slightly less than
+    half the allocated timeout period (in seconds) which allows two full
+    probes before taking the instance out of rotation. The default value is
+    15, the minimum value is 5.
+    """
+
+    load_balancing_rules = model.Field(
+        name="load_balancing_rules", key="loadBalancingRules",
+        is_required=False, is_read_only=True)
+    """Indicates an array of references to loadBalancingRule resources that
+    use this probe.
+    """
+
+    number_of_probes = model.Field(
+        name="number_of_probes", key="numberOfProbes",
+        is_required=False, is_read_only=False)
+    """Indicates the timeout period, in seconds, applied to the probe where
+    no response will result in stopping further traffic from being delivered
+    to the endpoint. This value allows endpoints to be taken out of rotation
+    faster or slower than the typical times (which are the defaults).
+    The default value is 31, the minimum value is 11.
+    """
+
+    protocol = model.Field(name="protocol", key="protocol",
+                           is_required=True, is_read_only=False)
+    """Indicates the protocol of the end point.
+
+    Valid values are `HTTP` or `TCP`. If `TCP` is specified, a received ACK
+    is required for the probe to be successful. If `HTTP` is specified,
+    a 200 OK response from the specified URI is required for the probe to
+    be successful.
+    """
+
+    port = model.Field(name="port", key="port",
+                       is_required=True, is_read_only=False)
+    """Indicates the port for communicating the probe. Possible values range
+    from 1 to 65535, inclusive.
+    """
+
+    request_path = model.Field(name="request_path", key="requestPath",
+                               is_required=True, is_read_only=False)
+    """Indicates the URI used for requesting health status from the VM.
+
+    The path is required if protocol is set to HTTP. Otherwise, it is not
+    allowed. There is no default value.
+    """
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data.get("properties", {})
+
+        load_balancing_rules = []
+        for raw_content in properties.get("loadBalancingRules", []):
+            resource = Resource.from_raw_data(raw_content)
+            load_balancing_rules.append(resource)
+        properties["loadBalancingRules"] = load_balancing_rules
+
+        return super(Probes, cls).from_raw_data(raw_data)
+
+
+class LoadBalancers(_BaseHNVModel):
+
+    """Model for load balancers.
+
+    The loadBalancers resource allows fine-grained configuration of the
+    distribution of incoming traffic across VM instances that are hosted
+    in a Windows Server and System Center cloud. This resource has two
+    main parts: a frontend and a backend configuration.
+
+    The frontend configuration exposes the IP address of the load balancer.
+    For example, this address can be a reserved public or private IP address
+    previously provided to the client, or it can be an IP address that is
+    dynamically allocated from a subnet of a virtual network.
+    """
+
+    _endpoint = "/networking/v1/loadBalancers/{resource_id}"
+
+    backend_address_pools = model.Field(name="backend_address_pools",
+                                        key="backendAddressPools",
+                                        is_required=False, is_read_only=False)
+    """Indicates the backend Address Pool of the load balancer."""
+
+    frontend_ip_configurations = model.Field(
+        name="frontend_ip_configurations", key="frontendIPConfigurations",
+        is_required=True, is_read_only=False)
+    """Indicates the frontend IP addresses of the load balancer."""
+
+    load_balancing_rules = model.Field(name="load_balancing_rules",
+                                       key="loadBalancingRules",
+                                       is_required=False, is_read_only=False)
+    """A list of load balancing configurations.
+
+    Each configuration describes what traffic and how it gets load balanced
+    between backend IPs.
+    """
+
+    inbound_nat_rules = model.Field(name="inbound_nat_rules",
+                                    key="inboundNatRules",
+                                    is_required=False, is_read_only=False)
+    """Indicates an array of inbound NAT rules configured for the
+    load balancer.
+    """
+
+    outbound_nat_rules = model.Field(name="outbound_nat_rules",
+                                     key="outboundNatRules",
+                                     is_required=False, is_read_only=False)
+    """Indicates an array of outbound NAT rules configured for the
+    load balancer.
+    """
+
+    probes = model.Field(name="probes", key="probes",
+                         is_required=False, is_read_only=False)
+    """Indicates an array of probes configured for the
+    load balancer.
+    """
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        properties = raw_data.get("properties", {})
+
+        backend_address_pools = []
+        for raw_content in properties.get("backendAddressPools", []):
+            raw_content["parentResourceID"] = raw_data["resourceId"]
+            address_pool = BackendAddressPools.from_raw_data(raw_content)
+            backend_address_pools.append(address_pool)
+        properties["backendAddressPools"] = backend_address_pools
+
+        frontend_ip_configurations = []
+        for raw_content in properties.get("frontendIPConfigurations", []):
+            raw_content["parentResourceID"] = raw_data["resourceId"]
+            ip_configurations = FrontendIPConfigurations.from_raw_data(
+                raw_content)
+            frontend_ip_configurations.append(ip_configurations)
+        properties["frontendIPConfigurations"] = frontend_ip_configurations
+
+        inbound_nat_rules = []
+        for raw_content in properties.get("inboundNatRules", []):
+            raw_content["parentResourceID"] = raw_data["resourceId"]
+            inbound_nat_rule = InboundNATRules.from_raw_data(raw_content)
+            inbound_nat_rules.append(inbound_nat_rule)
+        properties["inboundNatRules"] = inbound_nat_rules
+
+        outbound_nat_rules = []
+        for raw_content in properties.get("outboundNatRules", []):
+            raw_content["parentResourceID"] = raw_data["resourceId"]
+            inbound_nat_rule = OutboundNATRules.from_raw_data(raw_content)
+            outbound_nat_rules.append(inbound_nat_rule)
+        properties["outboundNatRules"] = outbound_nat_rules
+
+        load_balancing_rules = []
+        for raw_content in properties.get("loadBalancingRules", []):
+            raw_content["parentResourceID"] = raw_data["resourceId"]
+            balancing_rule = LoadBalancingRules.from_raw_data(raw_content)
+            load_balancing_rules.append(balancing_rule)
+        properties["loadBalancingRules"] = load_balancing_rules
+
+        probes = []
+        for raw_content in properties.get("probes", []):
+            raw_content["parentResourceID"] = raw_data["resourceId"]
+            probe = Probes.from_raw_data(raw_content)
+            probes.append(probe)
+        properties["probes"] = probes
+
+        return super(LoadBalancers, cls).from_raw_data(raw_data)

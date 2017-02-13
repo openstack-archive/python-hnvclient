@@ -1,0 +1,51 @@
+{
+    "value": [
+        {
+            "resourceRef": "/loadBalancers/0cac5f8a-9d5c-455a-a971- 2682d597e098/backendAddressPools/b32b5ef0-5332-49a8-b383-f91090135f71",
+            "resourceId": "b32b5ef0-5332-49a8-b383-f91090135f71",
+            "etag": "W/\"fb318cf6-9102-4e34-a684-5e25aee8d3f4\"",
+            "instanceId": "f980604c-258c-4d60-8be4-559edd085384",
+            "properties": {
+                "provisioningState": "Succeeded",
+                "backendIPConfigurations": [
+                    {
+                        "resourceRef": "/networkInterfaces/97c69782-f173-4793-a408-64074e601dd1/ipConfigurations/1b94ce74-b012-49a7-8e93-9315252c6ab2"
+                    },
+                    {
+                        "resourceRef": "/networkInterfaces/e5ea0c14-ce85-4eb7-909a-993f0477f5ac/ipConfigurations/45af7ff3-555f-43b0-ae74-7fcce88c5197"
+                    }
+                ],
+                "outboundNatRules": [
+                    {
+                        "resourceRef": "/loadBalancers/0cac5f8a-9d5c-455a-a971-2682d597e098/outboundNatRules/49053c15-2d0f-45a2-8148-be8615282160"
+                    }
+                ],
+                "loadBalancingRules": []
+            }
+        },
+        {
+            "resourceRef": "/loadBalancers/0cac5f8a-9d5c-455a-a971-2682d597e098/backendAddressPools/b32b5ef0-5332-49a8-b383-f91090135f71",
+            "resourceId": "b32b5ef0-5332-49a8-b383-f91090135f71",
+            "etag": "W/\"fb318cf6-9102-4e34-a684-5e25aee8d3f4\"",
+            "instanceId": "f980604c-258c-4d60-8be4-559edd085384",
+            "properties": {
+                "provisioningState": "Succeeded",
+                "backendIPConfigurations": [
+                    {
+                        "resourceRef": "/networkInterfaces/97c69782-f173-4793-a408-64074e601dd1/ipConfigurations/1b94ce74-b012-49a7-8e93-9315252c6ab2"
+                    },
+                    {
+                        "resourceRef": "/networkInterfaces/e5ea0c14-ce85-4eb7-909a-993f0477f5ac/ipConfigurations/45af7ff3-555f-43b0-ae74-7fcce88c5197"
+                    }
+                ],
+                "outboundNatRules": [
+                    {
+                        "resourceRef": "/loadBalancers/0cac5f8a-9d5c-455a-a971-2682d597e098/outboundNatRules/49053c15-2d0f-45a2-8148-be8615282160"
+                    }
+                ],
+                "loadBalancingRules": []
+            }
+        }
+    ],
+    "nextLink": ""
+}

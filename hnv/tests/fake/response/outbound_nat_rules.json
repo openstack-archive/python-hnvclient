@@ -1,0 +1,47 @@
+{
+    "value": [
+        {
+            "resourceRef": "/loadBalancers/0cac5f8a-9d5c-455a-a971-2682d597e098/outboundNatRules/49053c15-2d0f-45a2-8148-be8615282160",
+            "resourceId": "49053c15-2d0f-45a2-8148-be8615282160",
+            "etag": "W/\"fb318cf6-9102-4e34-a684-5e25aee8d3f4\"",
+            "instanceId": "c4000c95-7f90-4bb4-b68d-b2bc9c1dfc3e",
+            "properties": {
+                "provisioningState": "Succeeded",
+                "frontendIPConfigurations": [
+                    {
+                        "resourceRef": "/loadBalancers/0cac5f8a-9d5c-455a-a971-2682d597e098/frontendIPConfigurations/5187779d-c61c-44d2-87be-fa69ac2d9d57"
+                    },
+                    {
+                        "resourceRef": "/loadBalancers/0cac5f8a-9d5c-455a-a971-2682d597e098/frontendIPConfigurations/94c568d8-d839-431a-aed4-a5c178356018"
+                    }
+                ],
+                "protocol": "All",
+                "backendAddressPool": {
+                    "resourceRef": "/loadBalancers/0cac5f8a-9d5c-455a-a971-2682d597e098/backendAddressPools/b32b5ef0-5332-49a8-b383-f91090135f71"
+                }
+            }
+        },
+        {
+            "resourceRef": "/loadBalancers/0cac5f8a-9d5c-455a-a971-2682d597e098/outboundNatRules/49053c15-2d0f-45a2-8148-be8615282160",
+            "resourceId": "49053c15-2d0f-45a2-8148-be8615282160",
+            "etag": "W/\"fb318cf6-9102-4e34-a684-5e25aee8d3f4\"",
+            "instanceId": "c4000c95-7f90-4bb4-b68d-b2bc9c1dfc3e",
+            "properties": {
+                "provisioningState": "Succeeded",
+                "frontendIPConfigurations": [
+                    {
+                        "resourceRef": "/loadBalancers/0cac5f8a-9d5c-455a-a971-2682d597e098/frontendIPConfigurations/5187779d-c61c-44d2-87be-fa69ac2d9d57"
+                    },
+                    {
+                        "resourceRef": "/loadBalancers/0cac5f8a-9d5c-455a-a971-2682d597e098/frontendIPConfigurations/94c568d8-d839-431a-aed4-a5c178356018"
+                    }
+                ],
+                "protocol": "All",
+                "backendAddressPool": {
+                    "resourceRef": "/loadBalancers/0cac5f8a-9d5c-455a-a971-2682d597e098/backendAddressPools/b32b5ef0-5332-49a8-b383-f91090135f71"
+                }
+            }
+        }
+    ],
+    "nextLink": ""
+}
