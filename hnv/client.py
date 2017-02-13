@@ -14,6 +14,7 @@
 
 """This module contains all the available HNV resources."""
 
+import re
 import time
 import uuid
 
@@ -103,6 +104,24 @@ class _BaseHNVModel(model.Model):
     """"Configuration state indicates any failures in processing state
     corresponding to the resource it is contained in."""
 
+    def _reset_model(self, response):
+        """Update the fields value with the received information."""
+
+        # pylint: disable=no-member
+
+        # Reset the model to the initial state
+        self._data = self._meta.get_defaults()
+        self._provision_done = False    # Set back the provision flag
+        self._changes.clear()           # Clear the changes
+
+        # Process the raw data from the update response
+        fields = self.process_raw_data(response)
+        # Update the current model representation
+        self._set_fields(fields)
+
+        # Lock the current model
+        self._provision_done = True
+
     @staticmethod
     def _get_client():
         """Create a new client for the HNV REST API."""
@@ -113,17 +132,21 @@ class _BaseHNVModel(model.Model):
                                 ca_bundle=CONFIG.HNV.https_ca_bundle)
 
     @classmethod
-    def get(cls, resource_id=None, parent_id=None):
+    def get(cls, resource_id=None, parent_id=None, grandparent_id=None):
         """Retrieves the required resources.
 
         :param resource_id:      The identifier for the specific resource
                                  within the resource type.
         :param parent_id:        The identifier for the specific ancestor
                                  resource within the resource type.
+        :param grandparent_id:   The identifier that is associated with
+                                 network objects that are ancestors of the
+                                 parent of the necessary resource.
         """
         client = cls._get_client()
         endpoint = cls._endpoint.format(resource_id=resource_id or "",
-                                        parent_id=parent_id or "")
+                                        parent_id=parent_id or "",
+                                        grandparent_id=grandparent_id or "")
         raw_data = client.get_resource(endpoint)
         if resource_id is None:
             return [cls.from_raw_data(item) for item in raw_data["value"]]
@@ -131,16 +154,21 @@ class _BaseHNVModel(model.Model):
             return cls.from_raw_data(raw_data)
 
     @classmethod
-    def remove(cls, resource_id, parent_id=None, wait=True, timeout=None):
+    def remove(cls, resource_id, parent_id=None, grandparent_id=None,
+               wait=True, timeout=None):
         """Delete the required resource.
 
-        :param resource_id:   The identifier for the specific resource
-                              within the resource type.
-        :param parent_id:     The identifier for the specific ancestor
-                              resource within the resource type.
-        :param wait:          Whether to wait until the operation is completed
-        :param timeout:       The maximum amount of time required for this
-                              operation to be completed.
+        :param resource_id:      The identifier for the specific resource
+                                 within the resource type.
+        :param parent_id:        The identifier for the specific ancestor
+                                 resource within the resource type.
+        :param grandparent_id:   The identifier that is associated with
+                                 network objects that are ancestors of the
+                                 parent of the necessary resource.
+        :param wait:             Whether to wait until the operation is
+                                 completed
+        :param timeout:          The maximum amount of time required for this
+                                 operation to be completed.
 
         If optional :param wait: is True and timeout is None (the default),
         block if necessary until the resource is available. If timeout is a
@@ -153,7 +181,8 @@ class _BaseHNVModel(model.Model):
         """
         client = cls._get_client()
         endpoint = cls._endpoint.format(resource_id=resource_id or "",
-                                        parent_id=parent_id or "")
+                                        parent_id=parent_id or "",
+                                        grandparent_id=grandparent_id or "")
         client.remove_resource(endpoint)
 
         elapsed_time = 0
@@ -167,6 +196,16 @@ class _BaseHNVModel(model.Model):
             if timeout and elapsed_time > timeout:
                 raise exception.TimeOut("The request timed out.")
             time.sleep(CONFIG.HNV.retry_interval)
+
+    def refresh(self):
+        """Get the latest representation of the current model."""
+        client = self._get_client()
+        endpoint = self._endpoint.format(
+            resource_id=self.resource_id or "", parent_id=self.parent_id or "",
+            grandparent_id=self.grandparent_id or "")
+
+        response = client.get_resource(endpoint)
+        self._reset_model(response)
 
     def commit(self, wait=True, timeout=None):
         """Apply all the changes on the current model.
@@ -184,6 +223,9 @@ class _BaseHNVModel(model.Model):
         available, else raise the `NotFound` exception (timeout is ignored
         in that case).
         """
+        if not self._changes:
+            return
+
         super(_BaseHNVModel, self).commit(wait=wait, timeout=timeout)
         client = self._get_client()
         endpoint = self._endpoint.format(resource_id=self.resource_id or "",
@@ -193,31 +235,24 @@ class _BaseHNVModel(model.Model):
 
         elapsed_time = 0
         while wait:
-            response = client.get_resource(endpoint)
-            properties = response.get("properties", {})
-            provisioning_state = properties.get("provisioningState", None)
-            if not provisioning_state:
+            self.refresh()  # Update the representation of the current model
+            if not self.provisioning_state:
                 raise exception.ServiceException("The object doesn't contain "
                                                  "`provisioningState`.")
-            if provisioning_state == constant.FAILED:
+            elif self.provisioning_state == constant.FAILED:
                 raise exception.ServiceException(
                     "Failed to complete the required operation.")
-            elif provisioning_state == constant.SUCCEEDED:
+            elif self.provisioning_state == constant.SUCCEEDED:
                 break
 
             elapsed_time += CONFIG.HNV.retry_interval
             if timeout and elapsed_time > timeout:
                 raise exception.TimeOut("The request timed out.")
             time.sleep(CONFIG.HNV.retry_interval)
+        else:
+            self._reset_model(response)
 
-        # Process the raw data from the update response
-        fields = self.process_raw_data(response)
-        # Set back the provision flag
-        self._provision_done = False
-        # Update the current model representation
-        self._set_fields(fields)
-        # Lock the current model
-        self._provision_done = True
+        return self
 
     @classmethod
     def from_raw_data(cls, raw_data):
@@ -241,9 +276,41 @@ class Resource(model.Model):
 
     """Model for the resource references."""
 
+    _regexp = {}
+
     resource_ref = model.Field(name="resource_ref", key="resourceRef",
                                is_property=False, is_required=True)
     """A relative URI to an associated resource."""
+
+    def __init__(self, **fields):
+        super(Resource, self).__init__(**fields)
+        if not self._regexp:
+            self._load_models()
+
+    def _load_models(self):
+        models = globals().copy()
+        for _, model_cls in models.iteritems():
+            endpoint = getattr(model_cls, "_endpoint", None)
+            if endpoint is not None:
+                regexp = endpoint.format(
+                    resource_id="(?P<resource_id>[^/]+)",
+                    parent_id="(?P<parent_id>[^/]+)",
+                    grandparent_id="(?P<grandparent_id>[^/]+)")
+                regexp = re.sub("(/networking/v[0-9]+)/", "", regexp)
+                self._regexp[model_cls] = re.compile(regexp)
+
+    def get_resource(self):
+        """Return the associated resource."""
+        references = {"resource_id": None, "parent_id": None,
+                      "grandparent_id": None}
+        for model_cls, regexp in self._regexp.iteritems():
+            match = regexp.search(self.resource_ref)
+            if match is not None:
+                references.update(match.groupdict())
+                return model_cls.get(**references)
+
+        raise exception.NotFound("No model available for %(resource_ref)r",
+                                 resource_ref=self.resource_ref)
 
 
 class ResourceMetadata(model.Model):
@@ -379,7 +446,7 @@ class LogicalSubnetworks(_BaseHNVModel):
     """Indicates the IP Pools that are contained in the logical subnet."""
 
     dns_servers = model.Field(name="dns_servers", key="dnsServers",
-                              is_required=False)
+                              is_required=False, default=list)
     """Indicates one or more DNS servers that are used for resolving DNS
     queries by devices or host connected to this logical subnet."""
 
@@ -442,7 +509,7 @@ class LogicalNetworks(_BaseHNVModel):
     _endpoint = "/networking/v1/logicalNetworks/{resource_id}"
 
     subnetworks = model.Field(name="subnetworks", key="subnets",
-                              is_required=False, default=[])
+                              is_required=False, default=list)
     """Indicates the subnets that are contained in the logical network."""
 
     network_virtualization_enabled = model.Field(
@@ -452,9 +519,9 @@ class LogicalNetworks(_BaseHNVModel):
     for one or more virtual networks. Valid values are `True` or `False`.
     The default is `False`."""
 
-    virtual_networks = model.Field(name="virtual_networks",
-                                   key="virtualNetworks",
-                                   is_read_only=True)
+    virtual_networks = model.Field(
+        name="virtual_networks", key="virtualNetworks",
+        is_read_only=True, default=list)
     """Indicates an array of virtualNetwork resources that are using
     the network."""
 
@@ -527,7 +594,7 @@ class IPConfiguration(_BaseHNVModel):
     """Indicates the allocation method (Static or Dynamic)."""
 
     public_ip_address = model.Field(
-        name="public_ip_address", key="privateIpAddress",
+        name="public_ip_address", key="publicIpAddress",
         is_required=False)
     """Indicates the public IP address of the IP Configuration."""
 
@@ -878,7 +945,7 @@ class VirtualNetworks(_BaseHNVModel):
     network."""
 
     subnetworks = model.Field(name="subnetworks", key="subnets",
-                              is_required=False)
+                              is_required=False, default=list)
     """Indicates the subnets that are on the virtual network."""
 
     logical_network = model.Field(name="logical_network",
@@ -1126,7 +1193,8 @@ class VirtualSwitchManager(_BaseHNVModel):
         return super(VirtualSwitchManager, cls).from_raw_data(raw_data)
 
     @classmethod
-    def remove(cls, resource_id, parent_id=None, wait=True, timeout=None):
+    def remove(cls, resource_id, parent_id=None, grandparent_id=None,
+               wait=True, timeout=None):
         """Delete the required resource."""
         raise exception.NotSupported(feature="DELETE",
                                      context="VirtualSwitchManager")
@@ -1192,7 +1260,7 @@ class RouteTables(_BaseHNVModel):
     _endpoint = "/networking/v1/routeTables/{resource_id}"
 
     routes = model.Field(name="routes", key="routes", is_required=False,
-                         default=[])
+                         default=list)
     """Indicates the routes in a route table, see routes resource for full
     details on this element."""
 
@@ -1723,7 +1791,7 @@ class PublicIPAddresses(_BaseHNVModel):
     can be used to communicate with the virtual network from outside it.
     """
 
-    _endpoint = "/networking/v1/publicIpAddresses/{resource_i}"
+    _endpoint = "/networking/v1/publicIpAddresses/{resource_id}"
 
     ip_address = model.Field(name="ip_address", key="ipAddress",
                              is_required=False, is_read_only=False)

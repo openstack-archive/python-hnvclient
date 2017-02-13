@@ -36,6 +36,19 @@ class TestBaseHNVModel(unittest.TestCase):
     def setUp(self):
         client._BaseHNVModel._endpoint = "{parent_id}/{resource_id}"
 
+    @mock.patch("hnv.client._BaseHNVModel.process_raw_data")
+    @mock.patch("hnv.client._BaseHNVModel._set_fields")
+    def test_reset_model(self, mock_set_fields, mock_process):
+        resource = client._BaseHNVModel()
+
+        mock_process.return_value = mock.sentinel.fields
+        mock_set_fields.reset_mock()
+
+        resource._reset_model(mock.sentinel.response)
+
+        mock_process.assert_called_once_with(mock.sentinel.response)
+        mock_set_fields.assert_called_once_with(mock.sentinel.fields)
+
     @mock.patch("hnv.client._BaseHNVModel.from_raw_data")
     @mock.patch("hnv.client._BaseHNVModel._get_client")
     def test_get(self, mock_get_client, mock_from_raw_data):
@@ -101,16 +114,14 @@ class TestBaseHNVModel(unittest.TestCase):
         return {"properties": {"provisioningState": provisioning_state}}
 
     @mock.patch("time.sleep")
-    @mock.patch("hnv.client._BaseHNVModel.process_raw_data")
     @mock.patch("hnv.client._BaseHNVModel.dump")
     @mock.patch("hnv.client._BaseHNVModel._get_client")
-    def _test_commit(self, mock_get_client, mock_dump, mock_process,
+    def _test_commit(self, mock_get_client, mock_dump,
                      mock_sleep,
                      loop_count, timeout, failed, invalid_response):
         http_client = mock_get_client.return_value = mock.Mock()
         update_resource = http_client.update_resource = mock.Mock()
         mock_dump.return_value = mock.sentinel.request_body
-        mock_process.return_value = {}
 
         get_resource = http_client.get_resource = mock.Mock()
         side_effect = [self._get_provisioning(constant.UPDATING)
@@ -166,6 +177,20 @@ class TestBaseHNVModel(unittest.TestCase):
     def test_commit_invalid_response(self):
         self._test_commit(loop_count=1, timeout=False,
                           failed=False, invalid_response=True)
+
+    @mock.patch("hnv.client._BaseHNVModel._reset_model")
+    @mock.patch("hnv.client._BaseHNVModel._get_client")
+    def test_refresh(self, mock_get_client, mock_reset_model):
+        http_client = mock_get_client.return_value = mock.Mock()
+        get_resource = http_client.get_resource = mock.Mock()
+        get_resource.return_value = mock.sentinel.response
+
+        model = client._BaseHNVModel(resource_id="hnv-client",
+                                     parent_id="test")
+        model.refresh()
+
+        get_resource.assert_called_once_with("test/hnv-client")
+        mock_reset_model.assert_called_once_with(mock.sentinel.response)
 
 
 class TestClient(unittest.TestCase):
