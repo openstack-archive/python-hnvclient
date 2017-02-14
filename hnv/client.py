@@ -515,8 +515,9 @@ class LogicalSubnetworks(_BaseHNVModel):
     @classmethod
     def from_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
-        ip_pools = []
         properties = raw_data["properties"]
+
+        ip_pools = []
         for raw_content in properties.get("ipPools", []):
             raw_content["parentResourceID"] = raw_data["resourceId"]
             raw_content["grandParentResourceID"] = raw_data["parentResourceID"]
@@ -524,10 +525,9 @@ class LogicalSubnetworks(_BaseHNVModel):
         properties["ipPools"] = ip_pools
 
         ip_configurations = []
-        raw_settings = properties.get("ipConfigurations", [])
-        for raw_configuration in raw_settings:
-            ip_configuration = IPConfiguration.from_raw_data(raw_configuration)
-            ip_configurations.append(ip_configuration)
+        for raw_content in properties.get("ipConfigurations", []):
+            resource = Resource.from_raw_data(raw_content)
+            ip_configurations.append(resource)
         properties["ipConfigurations"] = ip_configurations
 
         network_interfaces = []
