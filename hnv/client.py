@@ -913,6 +913,7 @@ class SubNetworks(_BaseHNVModel):
 
         ip_configurations = []
         for raw_config in properties.get("ipConfigurations", []):
+            raw_config["parentResourceID"] = raw_data["resourceId"]
             ip_configurations.append(IPConfiguration.from_raw_data(raw_config))
         properties["ipConfigurations"] = ip_configurations
 
@@ -1213,6 +1214,11 @@ class VirtualSwitchManager(_BaseHNVModel):
             fields["qos_settings"] = VirtualSwtichQosSettings.from_raw_data(
                 raw_data=qos_settings)
         super(VirtualSwitchManager, self).__init__(**fields)
+
+    @classmethod
+    def get(cls, resource_id=None, parent_id=None, grandparent_id=None):
+        """"Retrieves the required resource."""
+        return cls._get(resource_id, parent_id, grandparent_id)
 
     @classmethod
     def from_raw_data(cls, raw_data):
@@ -2937,6 +2943,10 @@ class LoadBalancerManager(_BaseHNVModel):
     """An array of references to ipPool resource that will be used for the
     frontend IP Addresses.
     """
+    @classmethod
+    def get(cls, resource_id=None, parent_id=None, grandparent_id=None):
+        """"Retrieves the required resource."""
+        return cls._get(resource_id, parent_id, grandparent_id)
 
     @classmethod
     def from_raw_data(cls, raw_data):
