@@ -18,6 +18,29 @@
                 "loadBalancerBackendAddressPools": [],
                 "loadBalancerInboundNatRules": []
             }
+        },
+        {
+            "resourceRef": "/networkInterfaces/ec3ac77e-64be-4bc1-a2e3- 7cd6170a4752/ipConfigurations/cbcab016-6c87-4a32-8158-08e0db71635a",
+            "resourceId": "cbcab016-6c87-4a32-8158-08e0db71635a",
+            "etag": "W/\"5e2e060a-2103-4022-87ee-bf1667bd18eb\"",
+            "instanceId": "83283a7e-4885-468a-9a2a-c7c568efd290",
+            "properties": {
+                "provisioningState": "Succeeded",
+                "privateIPAddress": "13.168.101.21",
+                "privateIPAllocationMethod": "Static",
+                "subnet": {
+                    "resourceRef": "/virtualNetworks/740f3670-de42-4345-aaa7-6bb8d423c5df/subnets/da459373- 42ee-43d3-b094-6e2176406e4a"
+                },
+                "accessControlList": {
+                    "resourceRef": "/accessControlLists/4561e835-128c-44cd-b55f-98bca0d34aba"
+                },
+                "loadBalancerBackendAddressPools": [
+                    {
+                        "resourceRef": "/loadBalancers/2ea43ab6-cb92-4ad3-854f- bc62092cf4b0/backendAddressPools/1cd5d838-b574-4bcb-b6ac-9db3fc5e5f4d"
+                    }
+                ],
+                "loadBalancerInboundNatRules": []
+            }
         }
     ],
     "nextLink": ""

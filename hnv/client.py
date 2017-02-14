@@ -332,7 +332,8 @@ class Resource(model.Model):
                 # we will force the regexp to match the entire resource
                 # reference.
                 regexp = "^{regexp}$".format(regexp=regexp)
-                self._regexp[model_cls] = re.compile(regexp)
+                self._regexp[model_cls] = re.compile(regexp,
+                                                     flags=re.IGNORECASE)
 
     def get_resource(self):
         """Return the associated resource."""
@@ -634,7 +635,7 @@ class IPConfiguration(_BaseHNVModel):
     """Indicates the allocation method (Static or Dynamic)."""
 
     public_ip_address = model.Field(
-        name="public_ip_address", key="publicIpAddress",
+        name="public_ip_address", key="publicIPAddress",
         is_required=False)
     """Indicates the public IP address of the IP Configuration."""
 
@@ -647,6 +648,40 @@ class IPConfiguration(_BaseHNVModel):
     subnet = model.Field(name="subnet", key="subnet", is_read_only=True)
     """Indicates a reference to the subnet resource that the IP Configuration
     is connected to."""
+
+    @classmethod
+    def from_raw_data(cls, raw_data):
+        """Create a new model using raw API response."""
+        properties = raw_data["properties"]
+
+        address_pools = []
+        for content in properties.get("loadBalancerBackendAddressPools", []):
+            resource = Resource.from_raw_data(content)
+            address_pools.append(resource)
+        properties["loadBalancerBackendAddressPools"] = address_pools
+
+        nat_rules = []
+        for content in properties.get("loadBalancerInboundNatRules", None):
+            resource = Resource.from_raw_data(content)
+            nat_rules.append(resource)
+        properties["loadBalancerInboundNatRules"] = nat_rules
+
+        raw_content = properties.get("publicIPAddress", None)
+        if raw_content is not None:
+            resource = Resource.from_raw_data(raw_content)
+            properties["publicIPAddress"] = resource
+
+        raw_content = properties.get("serviceInsertion", None)
+        if raw_content is not None:
+            resource = Resource.from_raw_data(raw_content)
+            properties["serviceInsertion"] = resource
+
+        raw_content = properties.get("subnet", None)
+        if raw_content is not None:
+            resource = Resource.from_raw_data(raw_content)
+            properties["subnet"] = resource
+
+        return super(IPConfiguration, cls).from_raw_data(raw_data)
 
 
 class DNSSettings(model.Model):
@@ -1844,7 +1879,7 @@ class PublicIPAddresses(_BaseHNVModel):
     can be used to communicate with the virtual network from outside it.
     """
 
-    _endpoint = "/networking/v1/publicIpAddresses/{resource_id}"
+    _endpoint = "/networking/v1/publicIPAddresses/{resource_id}"
 
     ip_address = model.Field(name="ip_address", key="ipAddress",
                              is_required=False, is_read_only=False)
