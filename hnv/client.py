@@ -448,8 +448,11 @@ class LogicalSubnetworks(_BaseHNVModel):
     if the subnet is not associated with a vlan.
     """
 
+    # Note(alexcoman): The endpoint from the Northbound API (NBI) definition
+    # of the Microsoft Network Controller is not valid. The valid endpoint
+    # it's `subnets` not `logicalSubnetworks`.
     _endpoint = ("/networking/v1/logicalNetworks/{parent_id}"
-                 "/logicalSubnets/{resource_id}")
+                 "/subnets/{resource_id}")
 
     parent_id = model.Field(
         name="parent_id", key="parentResourceID",
