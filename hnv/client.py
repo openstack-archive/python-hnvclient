@@ -914,15 +914,26 @@ class SubNetworks(_BaseHNVModel):
         """Create a new model using raw API response."""
         properties = raw_data["properties"]
 
+        raw_content = properties.get("accessControlList", None)
+        if raw_content is not None:
+            resource = Resource.from_raw_data(raw_content)
+            properties["accessControlList"] = resource
+
+        # TODO(alexcoman): Add model for ServiceInsertion
+        raw_content = properties.get("serviceInsertion", None)
+        if raw_content is not None:
+            resource = Resource.from_raw_data(raw_content)
+            properties["serviceInsertion"] = resource
+
+        raw_content = properties.get("routeTable", None)
+        if raw_content is not None:
+            resource = Resource.from_raw_data(raw_content)
+            properties["routeTable"] = resource
+
         ip_configurations = []
         for raw_config in properties.get("ipConfigurations", []):
-            raw_config["parentResourceID"] = raw_data["resourceId"]
-            ip_configurations.append(IPConfiguration.from_raw_data(raw_config))
+            ip_configurations.append(Resource.from_raw_data(raw_config))
         properties["ipConfigurations"] = ip_configurations
-
-        acl = properties.get("accessControlList")
-        if acl:
-            properties["accessControlList"] = Resource.from_raw_data(acl)
 
         return super(SubNetworks, cls).from_raw_data(raw_data)
 
