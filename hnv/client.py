@@ -327,7 +327,11 @@ class Resource(model.Model):
                     resource_id="(?P<resource_id>[^/]+)",
                     parent_id="(?P<parent_id>[^/]+)",
                     grandparent_id="(?P<grandparent_id>[^/]+)")
-                regexp = re.sub("(/networking/v[0-9]+)/", "", regexp)
+                regexp = re.sub("(/networking/v[0-9]+)", "", regexp)
+                # Note(alexcoman): In order to avoid any false positives
+                # we will force the regexp to match the entire resource
+                # reference.
+                regexp = "^{regexp}$".format(regexp=regexp)
                 self._regexp[model_cls] = re.compile(regexp)
 
     def get_resource(self):
