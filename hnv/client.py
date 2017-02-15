@@ -890,6 +890,7 @@ class NetworkInterfaces(_BaseHNVModel):
         ip_configurations = []
         raw_settings = properties.get("ipConfigurations", [])
         for raw_configuration in raw_settings:
+            raw_configuration["parentResourceID"] = raw_data["resourceId"]
             ip_configuration = IPConfiguration.from_raw_data(raw_configuration)
             ip_configurations.append(ip_configuration)
         properties["ipConfigurations"] = ip_configurations
