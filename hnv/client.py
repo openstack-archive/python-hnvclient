@@ -302,6 +302,15 @@ class _BaseHNVModel(model.Model):
 
         return super(_BaseHNVModel, cls).from_raw_data(raw_data)
 
+    def _set_fields(self, fields):
+        """Set or update the fields value."""
+        super(_BaseHNVModel, self)._set_fields(fields)
+        if not self.resource_ref:
+            endpoint = self._endpoint.format(
+                resource_id=self.resource_id, parent_id=self.parent_id,
+                grandparent_id=self.grandparent_id)
+            self.resource_ref = re.sub("(/networking/v[0-9]+)", "", endpoint)
+
 
 class Resource(model.Model):
 
