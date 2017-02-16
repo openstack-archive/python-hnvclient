@@ -105,7 +105,7 @@ class _HNVClient(object):
             return not self._https_allow_insecure
 
     def _http_request(self, resource, method=constant.GET, body=None,
-                      if_match=None):
+                      if_match=False):
         if not resource.startswith("http"):
             url = requests.compat.urljoin(self._base_url, resource)
         else:
@@ -113,10 +113,10 @@ class _HNVClient(object):
 
         headers = self._get_headers()
         if method in (constant.PUT, constant.PATCH):
-            if not isinstance(if_match, six.string_types):
-                if_match = (body or {}).get("etag", None)
-            if if_match is not None:
-                headers["If-Match"] = if_match
+            if if_match:
+                etag = (body or {}).get("etag", None)
+                if etag is not None:
+                    headers["If-Match"] = etag
 
         attemts = 0
         while True:
@@ -127,7 +127,8 @@ class _HNVClient(object):
                     timeout=CONFIG.HNV.http_request_timeout
                 )
                 break
-            except requests.ConnectionError as exc:
+            except (requests.ConnectionError,
+                    requests.RequestException) as exc:
                 attemts += 1
                 self._http_session = None
                 LOG.debug("Request failed: %s", exc)

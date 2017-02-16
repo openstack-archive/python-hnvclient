@@ -79,7 +79,7 @@ class TestHNVClient(unittest.TestCase):
     @mock.patch("hnv.common.utils._HNVClient._get_headers")
     def _test_http_request(self, mock_headers, mock_session, mock_join,
                            mock_dump, mock_sleep,
-                           method, body, response, status_code):
+                           method, body, response, status_code, if_match):
         output = []
         headers = mock_headers.return_value = {}
         mock_join.return_value = mock.sentinel.url
@@ -105,35 +105,38 @@ class TestHNVClient(unittest.TestCase):
             if isinstance(expected_response, requests.exceptions.SSLError):
                 self.assertRaises(exception.CertificateVerifyFailed,
                                   client._http_request,
-                                  "/fake/resource", method, body)
+                                  "/fake/resource", method, body, if_match)
                 return
             elif isinstance(expected_response, requests.ConnectionError):
                 self.assertRaises(requests.ConnectionError,
                                   client._http_request,
-                                  "/fake/resource", method, body)
+                                  "/fake/resource", method, body, if_match)
                 return
             elif status_code == 400:
                 self.assertRaises(exception.ServiceException,
                                   client._http_request,
-                                  "/fake/resource", method, body)
+                                  "/fake/resource", method, body, if_match)
             elif status_code == 404:
                 self.assertRaises(exception.NotFound,
                                   client._http_request,
-                                  "/fake/resource", method, body)
+                                  "/fake/resource", method, body, if_match)
             elif status_code != 200:
                 self.assertRaises(requests.HTTPError,
                                   client._http_request,
-                                  "/fake/resource", method, body)
+                                  "/fake/resource", method, body, if_match)
             else:
                 client_response = client._http_request("/fake/resource",
-                                                       method, body)
+                                                       method, body, if_match)
 
         mock_join.assert_called_once_with(mock.sentinel.url,
                                           "/fake/resource")
         mock_headers.assert_called_once_with()
-        if not method == constant.GET:
+        if not method == constant.GET and if_match:
             etag = (body or {}).get("etag", None)
-            self.assertEqual(headers["If-Match"], etag)
+            if etag is None:
+                self.assertNotIn("If-Match", headers)
+            else:
+                self.assertEqual(headers["If-Match"], etag)
 
         if len(response) == 1:
             session_request.assert_called_once_with(
@@ -154,14 +157,16 @@ class TestHNVClient(unittest.TestCase):
         self._test_http_request(method=constant.GET,
                                 body=mock.sentinel.body,
                                 response=response,
-                                status_code=200)
+                                status_code=200,
+                                if_match=False)
 
     def test_http_request_put(self):
         response = [mock.MagicMock()]
         self._test_http_request(method=constant.PUT,
                                 body={"etag": mock.sentinel.etag},
                                 response=response,
-                                status_code=200)
+                                status_code=200,
+                                if_match=True)
 
     def test_http_request_with_connection_error(self):
         response = [requests.ConnectionError(), mock.MagicMock()]
@@ -169,7 +174,8 @@ class TestHNVClient(unittest.TestCase):
             self._test_http_request(method=constant.GET,
                                     body=mock.sentinel.body,
                                     response=response,
-                                    status_code=200)
+                                    status_code=200,
+                                    if_match=False)
 
     def test_http_request_connection_error(self):
         response = [requests.ConnectionError(), requests.ConnectionError()]
@@ -177,7 +183,8 @@ class TestHNVClient(unittest.TestCase):
             self._test_http_request(method=constant.GET,
                                     body=mock.sentinel.body,
                                     response=response,
-                                    status_code=200)
+                                    status_code=200,
+                                    if_match=False)
 
     def test_http_request_ssl_error(self):
         response = [requests.exceptions.SSLError(),
@@ -186,28 +193,32 @@ class TestHNVClient(unittest.TestCase):
             self._test_http_request(method=constant.GET,
                                     body=mock.sentinel.body,
                                     response=response,
-                                    status_code=200)
+                                    status_code=200,
+                                    if_match=False)
 
     def test_http_request_not_found(self):
         response = [mock.MagicMock()]
         self._test_http_request(method=constant.GET,
                                 body=mock.sentinel.body,
                                 response=response,
-                                status_code=404)
+                                status_code=404,
+                                if_match=False)
 
     def test_http_request_bad_request(self):
         response = [mock.MagicMock()]
         self._test_http_request(method=constant.GET,
                                 body=mock.sentinel.body,
                                 response=response,
-                                status_code=400)
+                                status_code=400,
+                                if_match=False)
 
     def test_http_request_server_error(self):
         response = [mock.MagicMock()]
         self._test_http_request(method=constant.GET,
                                 body=mock.sentinel.body,
                                 response=response,
-                                status_code=500)
+                                status_code=500,
+                                if_match=False)
 
     @mock.patch("hnv.common.utils._HNVClient._http_request")
     def test_get_resource(self, mock_http_request):

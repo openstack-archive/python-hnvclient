@@ -22,7 +22,6 @@ except ImportError:
     import mock
 
 from hnv import client
-from hnv.common import constant
 from hnv.common import exception
 from hnv import config as hnv_config
 from hnv.tests.fake import fake_response
@@ -77,15 +76,23 @@ class TestBaseHNVModel(unittest.TestCase):
         self.assertEqual(resources, [{} for _ in range(10)])
 
     @mock.patch("time.sleep")
+    @mock.patch("hnv.client._BaseHNVModel._get")
     @mock.patch("hnv.client._BaseHNVModel._get_client")
-    def _test_remove(self, mock_get_client, mock_sleep,
+    def _test_remove(self, mock_get_client, mock_get, mock_sleep,
                      loop_count, timeout):
+        resource = mock.Mock()
+        is_ready = resource.is_ready = mock.Mock()
+
         http_client = mock_get_client.return_value = mock.Mock()
         remove_resource = http_client.remove_resource = mock.Mock()
-        get_resource = http_client.get_resource = mock.Mock()
-        side_effect = [None for _ in range(loop_count)]
-        side_effect.append(exception.NotFound if not timeout else None)
-        get_resource.side_effect = side_effect
+
+        side_effect = [resource for _ in range(loop_count)]
+        side_effect.append(exception.NotFound if not timeout else resource)
+        mock_get.side_effect = side_effect
+
+        side_effect = [False for _ in range(loop_count)]
+        side_effect.append(True if not timeout else False)
+        is_ready.side_effect = side_effect
 
         request_timeout = CONFIG.HNV.retry_interval * loop_count
         request_wait = True if loop_count > 0 else False
@@ -115,27 +122,29 @@ class TestBaseHNVModel(unittest.TestCase):
         return {"properties": {"provisioningState": provisioning_state}}
 
     @mock.patch("time.sleep")
+    @mock.patch("hnv.client._BaseHNVModel._reset_model")
+    @mock.patch("hnv.client._BaseHNVModel.is_ready")
+    @mock.patch("hnv.client._BaseHNVModel.refresh")
     @mock.patch("hnv.client._BaseHNVModel.dump")
     @mock.patch("hnv.client._BaseHNVModel._get_client")
-    def _test_commit(self, mock_get_client, mock_dump,
-                     mock_sleep,
+    def _test_commit(self, mock_get_client, mock_dump, mock_refresh,
+                     mock_is_ready, mock_reset_model, mock_sleep,
                      loop_count, timeout, failed, invalid_response):
         http_client = mock_get_client.return_value = mock.Mock()
         update_resource = http_client.update_resource = mock.Mock()
+        update_resource.return_value = mock.sentinel.response
         mock_dump.return_value = mock.sentinel.request_body
 
-        get_resource = http_client.get_resource = mock.Mock()
-        side_effect = [self._get_provisioning(constant.UPDATING)
-                       for _ in range(loop_count)]
+        side_effect = [False for _ in range(loop_count)]
         if timeout:
-            side_effect.append(self._get_provisioning(constant.UPDATING))
+            side_effect.append(False)
         elif failed:
-            side_effect.append(self._get_provisioning(constant.FAILED))
+            side_effect.append(exception.ServiceException)
         elif invalid_response:
-            side_effect.append(self._get_provisioning(None))
+            side_effect.append(False)
         else:
-            side_effect.append(self._get_provisioning(constant.SUCCEEDED))
-        get_resource.side_effect = side_effect
+            side_effect.append(True)
+        mock_is_ready.side_effect = side_effect
 
         request_timeout = CONFIG.HNV.retry_interval * loop_count
         request_wait = True if loop_count > 0 else False
@@ -158,7 +167,9 @@ class TestBaseHNVModel(unittest.TestCase):
             if_match=None)
 
         if request_wait:
-            self.assertEqual(get_resource.call_count, loop_count + 1)
+            self.assertEqual(mock_refresh.call_count, loop_count + 1)
+        else:
+            mock_reset_model.assert_called_once_with(mock.sentinel.response)
 
     def test_commit(self):
         self._test_commit(loop_count=0, timeout=False,

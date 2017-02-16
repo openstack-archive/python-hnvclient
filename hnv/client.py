@@ -119,6 +119,22 @@ class _BaseHNVModel(model.Model):
         # Lock the current model
         self._provision_done = True
 
+    def is_ready(self):
+        """Check if the current model is ready to be used."""
+        if not self.provisioning_state:
+            raise exception.ServiceException("The object doesn't contain "
+                                             "`provisioningState`.")
+        elif self.provisioning_state == constant.FAILED:
+            raise exception.ServiceException(
+                "Failed to complete the required operation.")
+        elif self.provisioning_state == constant.SUCCEEDED:
+            LOG.debug("The model %s: %s was successfully updated "
+                      "(or created).",
+                      self.__class__.__name__, self.resource_id)
+            return True
+
+        return False
+
     @staticmethod
     def _get_client():
         """Create a new client for the HNV REST API."""
@@ -212,8 +228,13 @@ class _BaseHNVModel(model.Model):
         elapsed_time = 0
         while wait:
             try:
-                client.get_resource(endpoint)
+                resource = cls._get(resource_id=resource_id,
+                                    parent_id=parent_id,
+                                    grandparent_id=grandparent_id)
+                resource.is_ready()
+                LOG.debug("The resource is still available. %r", resource)
             except exception.NotFound:
+                LOG.debug("The resource was successfully removed.")
                 break
 
             elapsed_time += CONFIG.HNV.retry_interval
@@ -248,9 +269,12 @@ class _BaseHNVModel(model.Model):
         in that case).
         """
         if not self._changes:
+            LOG.debug("No changes available for %s: %s",
+                      self.__class__.__name__, self.resource_id)
             return
 
-        super(_BaseHNVModel, self).commit(wait=wait, timeout=timeout)
+        LOG.debug("Apply all the changes on the current %s: %s",
+                  self.__class__.__name__, self.resource_id)
         client = self._get_client()
         endpoint = self._endpoint.format(
             resource_id=self.resource_id or "",
@@ -263,15 +287,8 @@ class _BaseHNVModel(model.Model):
         elapsed_time = 0
         while wait:
             self.refresh()  # Update the representation of the current model
-            if not self.provisioning_state:
-                raise exception.ServiceException("The object doesn't contain "
-                                                 "`provisioningState`.")
-            elif self.provisioning_state == constant.FAILED:
-                raise exception.ServiceException(
-                    "Failed to complete the required operation.")
-            elif self.provisioning_state == constant.SUCCEEDED:
+            if self.is_ready():
                 break
-
             elapsed_time += CONFIG.HNV.retry_interval
             if timeout and elapsed_time > timeout:
                 raise exception.TimeOut("The request timed out.")
@@ -286,7 +303,7 @@ class _BaseHNVModel(model.Model):
         return self
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data.get("properties", {})
 
@@ -300,7 +317,7 @@ class _BaseHNVModel(model.Model):
             configuration = ConfigurationState.from_raw_data(raw_state)
             properties["configurationState"] = configuration
 
-        return super(_BaseHNVModel, cls).from_raw_data(raw_data)
+        return super(_BaseHNVModel, cls).process_raw_data(raw_data)
 
     def _set_fields(self, fields):
         """Set or update the fields value."""
@@ -522,7 +539,7 @@ class LogicalSubnetworks(_BaseHNVModel):
     administrator portal."""
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data["properties"]
 
@@ -545,7 +562,7 @@ class LogicalSubnetworks(_BaseHNVModel):
             network_interfaces.append(resource)
         properties["networkInterfaces"] = network_interfaces
 
-        return super(LogicalSubnetworks, cls).from_raw_data(raw_data)
+        return super(LogicalSubnetworks, cls).process_raw_data(raw_data)
 
 
 class LogicalNetworks(_BaseHNVModel):
@@ -577,7 +594,7 @@ class LogicalNetworks(_BaseHNVModel):
     the network."""
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data["properties"]
 
@@ -592,7 +609,7 @@ class LogicalNetworks(_BaseHNVModel):
             virtual_networks.append(Resource.from_raw_data(raw_network))
         properties["virtualNetworks"] = virtual_networks
 
-        return super(LogicalNetworks, cls).from_raw_data(raw_data)
+        return super(LogicalNetworks, cls).process_raw_data(raw_data)
 
 
 class IPConfiguration(_BaseHNVModel):
@@ -659,7 +676,7 @@ class IPConfiguration(_BaseHNVModel):
     is connected to."""
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data["properties"]
 
@@ -690,7 +707,7 @@ class IPConfiguration(_BaseHNVModel):
             resource = Resource.from_raw_data(raw_content)
             properties["subnet"] = resource
 
-        return super(IPConfiguration, cls).from_raw_data(raw_data)
+        return super(IPConfiguration, cls).process_raw_data(raw_data)
 
 
 class DNSSettings(model.Model):
@@ -791,12 +808,12 @@ class PortSettings(model.Model):
                                is_required=False, is_property=False)
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         raw_settings = raw_data.get("qosSettings", {})
         qos_settings = QosSettings.from_raw_data(raw_settings)
         raw_data["qosSettings"] = qos_settings
-        return super(PortSettings, cls).from_raw_data(raw_data)
+        return super(PortSettings, cls).process_raw_data(raw_data)
 
 
 class ConfigurationState(model.Model):
@@ -883,7 +900,7 @@ class NetworkInterfaces(_BaseHNVModel):
     this networkInterfaces resource is part of."""
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data["properties"]
 
@@ -903,7 +920,7 @@ class NetworkInterfaces(_BaseHNVModel):
         port_settings = PortSettings.from_raw_data(raw_settings)
         properties["portSettings"] = port_settings
 
-        return super(NetworkInterfaces, cls).from_raw_data(raw_data)
+        return super(NetworkInterfaces, cls).process_raw_data(raw_data)
 
 
 class SubNetworks(_BaseHNVModel):
@@ -959,7 +976,7 @@ class SubNetworks(_BaseHNVModel):
     are connected to the subnet."""
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data["properties"]
 
@@ -984,7 +1001,7 @@ class SubNetworks(_BaseHNVModel):
             ip_configurations.append(Resource.from_raw_data(raw_config))
         properties["ipConfigurations"] = ip_configurations
 
-        return super(SubNetworks, cls).from_raw_data(raw_data)
+        return super(SubNetworks, cls).process_raw_data(raw_data)
 
 
 class DHCPOptions(model.Model):
@@ -1051,7 +1068,7 @@ class VirtualNetworks(_BaseHNVModel):
     underlay network which the virtual network runs on."""
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data["properties"]
 
@@ -1075,7 +1092,7 @@ class VirtualNetworks(_BaseHNVModel):
             subnetworks.append(SubNetworks.from_raw_data(raw_subnet))
         properties["subnets"] = subnetworks
 
-        return super(VirtualNetworks, cls).from_raw_data(raw_data)
+        return super(VirtualNetworks, cls).process_raw_data(raw_data)
 
 
 class ACLRules(_BaseHNVModel):
@@ -1198,9 +1215,15 @@ class AccessControlLists(_BaseHNVModel):
     control list is associated with."""
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data["properties"]
+
+        ip_configurations = []
+        for raw_content in properties.get("ipConfigurations", []):
+            resource = Resource.from_raw_data(raw_content)
+            ip_configurations.append(resource)
+        properties["ipConfigurations"] = ip_configurations
 
         subnetworks = []
         for raw_subnet in properties.get("subnets", []):
@@ -1213,7 +1236,7 @@ class AccessControlLists(_BaseHNVModel):
             acl_rules.append(ACLRules.from_raw_data(raw_rule))
         properties["aclRules"] = acl_rules
 
-        return super(AccessControlLists, cls).from_raw_data(raw_data)
+        return super(AccessControlLists, cls).process_raw_data(raw_data)
 
 
 class VirtualSwtichQosSettings(model.Model):
@@ -1284,13 +1307,13 @@ class VirtualSwitchManager(_BaseHNVModel):
         return cls._get(resource_id, parent_id, grandparent_id)
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data["properties"]
         qos_settings = properties.get("qosSettings", {})
         properties["qosSettings"] = VirtualSwtichQosSettings.from_raw_data(
             raw_data=qos_settings)
-        return super(VirtualSwitchManager, cls).from_raw_data(raw_data)
+        return super(VirtualSwitchManager, cls).process_raw_data(raw_data)
 
     @classmethod
     def remove(cls, resource_id, parent_id=None, grandparent_id=None,
@@ -1369,7 +1392,7 @@ class RouteTables(_BaseHNVModel):
     table is associated with."""
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data["properties"]
 
@@ -1386,7 +1409,7 @@ class RouteTables(_BaseHNVModel):
             subnets.append(Resource.from_raw_data(raw_subnet))
         properties["subnets"] = subnets
 
-        return super(RouteTables, cls).from_raw_data(raw_data)
+        return super(RouteTables, cls).process_raw_data(raw_data)
 
 
 class MainMode(model.Model):
@@ -1566,7 +1589,7 @@ class IPSecConfiguration(model.Model):
     """Indicates collection of IPsec TrafficSelectors on the tenant side."""
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         raw_main = raw_data.get("mainMode", None)
         if raw_main is not None:
@@ -1590,7 +1613,7 @@ class IPSecConfiguration(model.Model):
                 raw_remote_vpn))
         raw_data["remoteVpnTrafficSelector"] = remote_vpn_ts
 
-        return super(IPSecConfiguration, cls).from_raw_data(raw_data)
+        return super(IPSecConfiguration, cls).process_raw_data(raw_data)
 
 
 class IPAddress(model.Model):
@@ -1836,7 +1859,7 @@ class NetworkConnections(_BaseHNVModel):
                           is_required=False, is_read_only=False)
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data.get("properties", {})
 
@@ -1876,7 +1899,7 @@ class NetworkConnections(_BaseHNVModel):
             gateway = Resource.from_raw_data(raw_content)
             properties["gateway"] = gateway
 
-        return super(NetworkConnections, cls).from_raw_data(raw_data)
+        return super(NetworkConnections, cls).process_raw_data(raw_data)
 
 
 class PublicIPAddresses(_BaseHNVModel):
@@ -1938,7 +1961,7 @@ class PublicIPAddresses(_BaseHNVModel):
     """
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data.get("properties", {})
 
@@ -1947,7 +1970,7 @@ class PublicIPAddresses(_BaseHNVModel):
             resource = Resource.from_raw_data(raw_content)
             properties["ipConfiguration"] = resource
 
-        return super(PublicIPAddresses, cls).from_raw_data(raw_data)
+        return super(PublicIPAddresses, cls).process_raw_data(raw_data)
 
 
 class BackendAddressPools(_BaseHNVModel):
@@ -1997,7 +2020,7 @@ class BackendAddressPools(_BaseHNVModel):
     resources that use this backend address pool."""
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data.get("properties", {})
 
@@ -2019,7 +2042,7 @@ class BackendAddressPools(_BaseHNVModel):
             outbound_nat_rules.append(resource)
         properties["outboundNatRules"] = outbound_nat_rules
 
-        return super(BackendAddressPools, cls).from_raw_data(raw_data)
+        return super(BackendAddressPools, cls).process_raw_data(raw_data)
 
 
 class FrontendIPConfigurations(_BaseHNVModel):
@@ -2104,7 +2127,7 @@ class FrontendIPConfigurations(_BaseHNVModel):
     """
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data.get("properties", {})
 
@@ -2131,7 +2154,7 @@ class FrontendIPConfigurations(_BaseHNVModel):
             resource = Resource.from_raw_data(raw_content)
             properties["subnet"] = resource
 
-        return super(FrontendIPConfigurations, cls).from_raw_data(raw_data)
+        return super(FrontendIPConfigurations, cls).process_raw_data(raw_data)
 
 
 class InboundNATRules(_BaseHNVModel):
@@ -2218,7 +2241,7 @@ class InboundNATRules(_BaseHNVModel):
     """
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data.get("properties", {})
 
@@ -2236,7 +2259,7 @@ class InboundNATRules(_BaseHNVModel):
             frontend_ip_configurations.append(resource)
         properties["frontendIPConfigurations"] = frontend_ip_configurations
 
-        return super(InboundNATRules, cls).from_raw_data(raw_data)
+        return super(InboundNATRules, cls).process_raw_data(raw_data)
 
 
 class LoadBalancingRules(_BaseHNVModel):
@@ -2359,7 +2382,7 @@ class LoadBalancingRules(_BaseHNVModel):
     """
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data.get("properties", {})
 
@@ -2379,7 +2402,7 @@ class LoadBalancingRules(_BaseHNVModel):
             resource = Resource.from_raw_data(raw_content)
             properties["probe"] = resource
 
-        return super(LoadBalancingRules, cls).from_raw_data(raw_data)
+        return super(LoadBalancingRules, cls).process_raw_data(raw_data)
 
 
 class OutboundNATRules(_BaseHNVModel):
@@ -2426,7 +2449,7 @@ class OutboundNATRules(_BaseHNVModel):
     """
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data.get("properties", {})
 
@@ -2441,7 +2464,7 @@ class OutboundNATRules(_BaseHNVModel):
             resource = Resource.from_raw_data(raw_content)
             properties["backendAddressPool"] = resource
 
-        return super(OutboundNATRules, cls).from_raw_data(raw_data)
+        return super(OutboundNATRules, cls).process_raw_data(raw_data)
 
 
 class Probes(_BaseHNVModel):
@@ -2510,7 +2533,7 @@ class Probes(_BaseHNVModel):
     """
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data.get("properties", {})
 
@@ -2520,7 +2543,7 @@ class Probes(_BaseHNVModel):
             load_balancing_rules.append(resource)
         properties["loadBalancingRules"] = load_balancing_rules
 
-        return super(Probes, cls).from_raw_data(raw_data)
+        return super(Probes, cls).process_raw_data(raw_data)
 
 
 class LoadBalancers(_BaseHNVModel):
@@ -2580,7 +2603,7 @@ class LoadBalancers(_BaseHNVModel):
     """
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         properties = raw_data.get("properties", {})
 
         backend_address_pools = []
@@ -2608,8 +2631,8 @@ class LoadBalancers(_BaseHNVModel):
         outbound_nat_rules = []
         for raw_content in properties.get("outboundNatRules", []):
             raw_content["parentResourceID"] = raw_data["resourceId"]
-            inbound_nat_rule = OutboundNATRules.from_raw_data(raw_content)
-            outbound_nat_rules.append(inbound_nat_rule)
+            outbound_nat_rule = OutboundNATRules.from_raw_data(raw_content)
+            outbound_nat_rules.append(outbound_nat_rule)
         properties["outboundNatRules"] = outbound_nat_rules
 
         load_balancing_rules = []
@@ -2626,7 +2649,7 @@ class LoadBalancers(_BaseHNVModel):
             probes.append(probe)
         properties["probes"] = probes
 
-        return super(LoadBalancers, cls).from_raw_data(raw_data)
+        return super(LoadBalancers, cls).process_raw_data(raw_data)
 
 
 class _BGPPeersStatistics(model.Model):
@@ -2783,7 +2806,7 @@ class BGPPeersStatistics(model.Model):
     """Time stamp when the stats were last updated."""
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
 
         # pylint: disable=redefined-variable-type
@@ -2825,7 +2848,7 @@ class BGPPeersStatistics(model.Model):
             statistics = IPV6Route.from_raw_data(raw_content)
             raw_data["ipv6Route"] = statistics
 
-        return super(BGPPeersStatistics, cls).from_raw_data(raw_data)
+        return super(BGPPeersStatistics, cls).process_raw_data(raw_data)
 
 
 class BGPPeers(_BaseHNVModel):
@@ -2894,7 +2917,7 @@ class BGPPeers(_BaseHNVModel):
     """This flag is set to `True` for iBGP peers."""
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data.get("properties", {})
 
@@ -2903,7 +2926,7 @@ class BGPPeers(_BaseHNVModel):
             statistics = BGPPeersStatistics.from_raw_data(raw_content)
             properties["statistics"] = statistics
 
-        super(BGPPeers, cls).from_raw_data(raw_data)
+        return super(BGPPeers, cls).process_raw_data(raw_data)
 
 
 class BGPRouters(_BaseHNVModel):
@@ -2957,7 +2980,7 @@ class BGPRouters(_BaseHNVModel):
     """Collection of BGP peers associated with the BGP Routers resource."""
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data.get("properties", {})
 
@@ -2968,7 +2991,7 @@ class BGPRouters(_BaseHNVModel):
             bgp_peers.append(BGPPeers.from_raw_data(raw_content))
         properties["bgpPeers"] = bgp_peers
 
-        return super(BGPRouters, cls).from_raw_data(raw_data)
+        return super(BGPRouters, cls).process_raw_data(raw_data)
 
 
 class LoadBalancerManager(_BaseHNVModel):
@@ -3012,7 +3035,7 @@ class LoadBalancerManager(_BaseHNVModel):
         return cls._get(resource_id, parent_id, grandparent_id)
 
     @classmethod
-    def from_raw_data(cls, raw_data):
+    def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
         properties = raw_data.get("properties", {})
 
@@ -3022,4 +3045,4 @@ class LoadBalancerManager(_BaseHNVModel):
             vip_ip_pools.append(resource)
         properties["vipIpPools"] = vip_ip_pools
 
-        return super(LoadBalancerManager, cls).from_raw_data(raw_data)
+        return super(LoadBalancerManager, cls).process_raw_data(raw_data)
