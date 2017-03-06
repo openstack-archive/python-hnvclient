@@ -1,12 +1,20 @@
-# python-hnv
+================
+python-hnvclient
+================
 
 [![Build Status](https://travis-ci.org/cloudbase/python-hnvclient.svg?branch=master)](https://travis-ci.org/cloudbase/python-hnvclient)
 
 Python client for the HNV (Hyper-V Network Virtualization) REST API.
 
- - License: Apache License, Version 2.0
 
-## Python API
+* Free software: Apache license
+* Documentation: http://docs.openstack.org/developer/python-hnvclient
+* Source: http://git.openstack.org/cgit/openstack/python-hnvclient
+* Bugs: http://bugs.launchpad.net/python-hnvclient
+
+
+Features
+--------
 
 The Python interface matches the underlying REST API and can be employed in 3rd party projects.
 
