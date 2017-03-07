@@ -1,0 +1,6 @@
+[run]
+branch = True
+source = hnv
+
+[report]
+ignore_errors = True
