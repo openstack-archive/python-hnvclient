@@ -1,0 +1,101 @@
+{
+    "value": [
+        {
+            "resourceRef": "/loadBalancerMuxes/Mux-0",
+            "resourceId": "Mux-0",
+            "etag": "W/\"fac641b5-304d-4578-878f-cb9fe670bbb5\"",
+            "instanceId": "68070a20-8434-4885-ae8c-eda27618d4ce",
+            "properties": {
+                "provisioningState": "Succeeded",
+                "routerConfiguration": {
+                    "localASN": 2,
+                    "peerRouterConfigurations": [
+                        {
+                            "routerName": "BGPGateway-0",
+                            "routerIPAddress": "195.171.120.1",
+                            "peerASN": 1,
+                            "id": "860ed1e7-b165-4397-a2bf-d78578feb1c9"
+                        }
+                    ]
+                },
+                "virtualServer": {
+                    "resourceRef": "/virtualServers/8e361faf-e957-4e26-9728-3ab6454543ab"
+                },
+                "connections": [
+                    {
+                        "managementAddresses": [
+                            "195.171.120.21",
+                            "hnv-test22"
+                        ],
+                        "credential": {
+                            "resourceRef": "/credentials/hnv-test22-credentials"
+                        },
+                        "credentialType": "usernamePassword",
+                        "protocol": "tcp",
+                        "port": "2003"
+                    }
+                ],
+                "configurationState": {
+                    "status": "Success",
+                    "detailedInfo": [
+                        {
+                            "source": "SoftwareLoadBalancerManager",
+                            "message": "Loadbalancer Mux is Healthy.",
+                            "code": "Success"
+                        }
+                    ],
+                    "lastUpdatedTime": "2016-06-09T17:21:46.3280587-07:00"
+                }
+            }
+        },
+        {
+            "resourceRef": "/loadBalancerMuxes/Mux-0",
+            "resourceId": "Mux-0",
+            "etag": "W/\"fac641b5-304d-4578-878f-cb9fe670bbb5\"",
+            "instanceId": "68070a20-8434-4885-ae8c-eda27618d4ce",
+            "properties": {
+                "provisioningState": "Succeeded",
+                "routerConfiguration": {
+                    "localASN": 2,
+                    "peerRouterConfigurations": [
+                        {
+                            "routerName": "BGPGateway-0",
+                            "routerIPAddress": "195.171.120.1",
+                            "peerASN": 1,
+                            "id": "860ed1e7-b165-4397-a2bf-d78578feb1c9"
+                        }
+                    ]
+                },
+                "virtualServer": {
+                    "resourceRef": "/virtualServers/8e361faf-e957-4e26-9728-3ab6454543ab"
+                },
+                "connections": [
+                    {
+                        "managementAddresses": [
+                            "195.171.120.21",
+                            "hnv-test22"
+                        ],
+                        "credential": {
+                            "resourceRef": "/credentials/hnv-test22-credentials"
+                        },
+                        "credentialType": "usernamePassword",
+                        "protocol": "tcp",
+                        "port": "2003"
+                    }
+                ],
+                "configurationState": {
+                    "status": "Success",
+                    "detailedInfo": [
+                        {
+                            "source": "SoftwareLoadBalancerManager",
+                            "message": "Loadbalancer Mux is Healthy.",
+                            "code": "Success"
+                        }
+                    ],
+                    "lastUpdatedTime": "2016-06-09T17:21:46.3280587-07:00"
+                }
+            }
+        }
+    ],
+    "nextLink": ""
+}

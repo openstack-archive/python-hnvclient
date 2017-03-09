@@ -3046,3 +3046,145 @@ class LoadBalancerManager(_BaseHNVModel):
         properties["vipIpPools"] = vip_ip_pools
 
         return super(LoadBalancerManager, cls).process_raw_data(raw_data)
+
+
+class _Connections(model.Model):
+
+    """Model for connections LoadBalancerMux's sub-model."""
+
+    credential = model.Field(
+        name="credential", key="credential",
+        is_property=False, is_required=False)
+    """Indicates a reference to a credential resource that can be used to
+    connect to the device for management purposes.
+    """
+
+    credential_type = model.Field(
+        name="credential_type", key="credentialType",
+        is_property=False, is_required=False)
+    """Indicates the type of credential, e.g. X509Certificate or
+    UsernamePassword.
+    """
+
+    management_addresses = model.Field(
+        name="management_addresses", key="managementAddresses",
+        is_property=False, is_required=False)
+    """Indicates the management address used to connect to the server. This is
+    in the form of an IPv4 IP address, an IPv6 IP address, a DNS name or a flat
+    (NetBIOS) name.
+    """
+
+    protocol = model.Field(name="protocol", key="protocol",
+                           is_property=False, is_required=False)
+
+    port = model.Field(name="port", key="port",
+                       is_property=False, is_required=False)
+
+    @classmethod
+    def process_raw_data(cls, raw_data):
+        raw_content = raw_data.get("credential")
+        if raw_content is not None:
+            credential_ref = Resource.from_raw_data(raw_content)
+            raw_data["credential"] = credential_ref
+
+        return super(_Connections, cls).process_raw_data(raw_data)
+
+
+class _PeerRouterConfiguration(model.Model):
+
+    """Model for peer router configuration _RouterConfiguration sub-model."""
+
+    peer_id = model.Field(name="peer_id", key="id",
+                          is_property=False, is_required=True)
+
+    name = model.Field(name="name", key="routerName",
+                       is_property=False, is_required=True)
+    """The friendly name of the peer router."""
+
+    peer_asn = model.Field(name="peer_asn", key="peerASN",
+                           is_property=False, is_required=True)
+    """The BGP autonomous system number of the peer."""
+
+    ip_address = model.Field(name="ip_address", key="routerIPAddress",
+                             is_property=False, is_required=False)
+    """The IPv4 address of the local interface on the Mux from which peering
+    to BGP will be established."""
+
+
+class _RouterConfiguration(model.Model):
+
+    """Model for router configuration LoadBalancerMux's sub-model."""
+
+    local_asn = model.Field(
+        name="local_asn", key="localASN",
+        is_property=False, is_required=True, is_read_only=False)
+    """Is the BGP autonomous system number of the MUX."""
+
+    peer_router_configurations = model.Field(
+        name="peer_router_configurations",
+        key="peerRouterConfigurations",
+        is_property=False, is_required=True, is_read_only=False)
+    """The BGP settings the MUX uses to establish and maintain BGP peering
+    with one or more peers."""
+
+    @classmethod
+    def process_raw_data(cls, raw_data):
+        router_configurations = []
+        for raw_content in raw_data.get("peerRouterConfigurations", []):
+            configuration = _PeerRouterConfiguration.from_raw_data(raw_content)
+            router_configurations.append(configuration)
+        raw_data["peerRouterConfigurations"] = router_configurations
+
+        return super(_RouterConfiguration, cls).process_raw_data(raw_data)
+
+
+class LoadBalancerMux(_BaseHNVModel):
+
+    """Model for load balancer mux resource.
+
+    The LoadBalancerMux resource represents a MUX VM deployed in the
+    Network Controller's stamp.
+    """
+
+    connections = model.Field(
+        name="connections", key="connections",
+        is_property=True, is_required=False, is_read_only=False)
+    """Indicates an array of connections that specifies the information
+    needed to connect to the specific device for the purposes of managing
+    and controlling the device.
+    """
+
+    router_configuration = model.Field(
+        name="router_configuration", key="routerConfiguration",
+        is_property=True, is_required=True, is_read_only=False)
+    """Provides the BGP router configuration to the MUX to ensure it peers
+    with the datacenter routing infrastructure and properly advertises routes.
+    """
+
+    virtual_server = model.Field(
+        name="virtual_server", key="virtualServer",
+        is_property=True, is_required=True, is_read_only=False)
+    """Indicates a reference to the virtualServer resource that
+    the loadbalancer mux runs on."""
+
+    @classmethod
+    def process_raw_data(cls, raw_data):
+        properties = raw_data.get("properties", {})
+
+        connections = []
+        for connection in properties.get("connections", []):
+            connection = _Connections.from_raw_data(connection)
+            connections.append(connection)
+        properties["connections"] = connections
+
+        raw_content = properties.get("routerConfiguration")
+        if raw_content is not None:
+            configuration = _RouterConfiguration.from_raw_data(raw_content)
+            properties["routerConfiguration"] = configuration
+
+        raw_content = properties.get("virtualServer")
+        if raw_content is not None:
+            resource = Resource.from_raw_data(raw_content)
+            properties["virtualServer"] = resource
+
+        return super(LoadBalancerMux, cls).process_raw_data(raw_data)

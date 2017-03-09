@@ -129,3 +129,7 @@ class FakeResponse(object):
     def load_balancer_manager(self):
         """Fake GET response for load balancer manager."""
         return self._load_resource("load_balancer_manager.json")
+
+    def load_balancer_mux(self):
+        """Fake GET(all) response for load balancer mux."""
+        return self._load_resource("load_balancer_mux.json")
