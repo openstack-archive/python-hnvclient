@@ -17,6 +17,8 @@
 import json
 import pkg_resources
 
+from hnv.common import utils
+
 
 class FakeResponse(object):
 
@@ -29,9 +31,10 @@ class FakeResponse(object):
     def _load_resource(self, resource):
         """Load the json response for the required resource."""
         if resource not in self._cache:
-            json_response = pkg_resources.resource_stream(
+            resource_stream = pkg_resources.resource_stream(
                 self._resources, resource)
-            self._cache[resource] = json.load(json_response)
+            json_response = utils.get_as_string(resource_stream.read())
+            self._cache[resource] = json.loads(json_response)
         return self._cache[resource]
 
     def logical_networks(self):

@@ -208,3 +208,15 @@ def run_once(function, state={}, errors={}):
 def get_client(url, username, password, allow_insecure, ca_bundle):
     """Create a new client for the HNV REST API."""
     return _HNVClient(url, username, password, allow_insecure, ca_bundle)
+
+
+def get_as_string(value):
+    if value is None or isinstance(value, six.text_type):
+        return value
+    else:
+        try:
+            return value.decode()
+        except Exception:
+            # This is important, because None will be returned,
+            # but not that serious to raise an exception.
+            LOG.error("Couldn't decode: %r", value)

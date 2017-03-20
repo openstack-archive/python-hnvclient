@@ -346,7 +346,7 @@ class Resource(model.Model):
 
     def _load_models(self):
         models = globals().copy()
-        for _, model_cls in models.iteritems():
+        for _, model_cls in models.items():
             endpoint = getattr(model_cls, "_endpoint", None)
             if endpoint is not None:
                 regexp = endpoint.format(
@@ -365,7 +365,7 @@ class Resource(model.Model):
         """Return the associated resource."""
         references = {"resource_id": None, "parent_id": None,
                       "grandparent_id": None}
-        for model_cls, regexp in self._regexp.iteritems():
+        for model_cls, regexp in self._regexp.items():
             match = regexp.search(self.resource_ref)
             if match is not None:
                 references.update(match.groupdict())
