@@ -2155,6 +2155,11 @@ class FrontendIPConfigurations(_BaseHNVModel):
             resource = Resource.from_raw_data(raw_content)
             properties["subnet"] = resource
 
+        raw_content = properties.get("publicIPAddress", None)
+        if raw_content is not None:
+            resource = Resource.from_raw_data(raw_content)
+            properties["publicIPAddress"] = resource
+
         return super(FrontendIPConfigurations, cls).process_raw_data(raw_data)
 
 
