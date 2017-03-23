@@ -24,15 +24,14 @@ from hnv.common import constant
 from hnv.common import exception
 from hnv.common import model
 from hnv.common import utils
-from hnv import config as hnv_config
+from hnv import CONFIG
 
 LOG = logging.getLogger(__name__)
-CONFIG = hnv_config.CONFIG
 
 
 class _BaseHNVModel(model.Model):
 
-    _endpoint = CONFIG.HNV.url
+    _endpoint = CONFIG["url"]
 
     resource_ref = model.Field(name="resource_ref", key="resourceRef",
                                is_property=False)
@@ -138,11 +137,13 @@ class _BaseHNVModel(model.Model):
     @staticmethod
     def _get_client():
         """Create a new client for the HNV REST API."""
-        return utils.get_client(url=CONFIG.HNV.url,
-                                username=CONFIG.HNV.username,
-                                password=CONFIG.HNV.password,
-                                allow_insecure=CONFIG.HNV.https_allow_insecure,
-                                ca_bundle=CONFIG.HNV.https_ca_bundle)
+        return utils.get_client(
+            url=CONFIG["url"],
+            username=CONFIG["username"],
+            password=CONFIG["password"],
+            allow_insecure=CONFIG["https_allow_insecure"],
+            ca_bundle=CONFIG["https_ca_bundle"]
+        )
 
     @classmethod
     def _get_all(cls, parent_id=None, grandparent_id=None):
@@ -237,10 +238,10 @@ class _BaseHNVModel(model.Model):
                 LOG.debug("The resource was successfully removed.")
                 break
 
-            elapsed_time += CONFIG.HNV.retry_interval
+            elapsed_time += CONFIG["retry_interval"]
             if timeout and elapsed_time > timeout:
                 raise exception.TimeOut("The request timed out.")
-            time.sleep(CONFIG.HNV.retry_interval)
+            time.sleep(CONFIG["retry_interval"])
 
     def refresh(self):
         """Get the latest representation of the current model."""
@@ -289,10 +290,10 @@ class _BaseHNVModel(model.Model):
             self.refresh()  # Update the representation of the current model
             if self.is_ready():
                 break
-            elapsed_time += CONFIG.HNV.retry_interval
+            elapsed_time += CONFIG["retry_interval"]
             if timeout and elapsed_time > timeout:
                 raise exception.TimeOut("The request timed out.")
-            time.sleep(CONFIG.HNV.retry_interval)
+            time.sleep(CONFIG["retry_interval"])
         else:
             self._reset_model(response)
 
@@ -2808,9 +2809,6 @@ class BGPPeersStatistics(model.Model):
     @classmethod
     def process_raw_data(cls, raw_data):
         """Create a new model using raw API response."""
-
-        # pylint: disable=redefined-variable-type
-
         raw_content = raw_data.get("updateMessageStats", None)
         if raw_content is not None:
             statistics = UpdateMessageStatistics.from_raw_data(raw_content)
@@ -3188,3 +3186,26 @@ class LoadBalancerMux(_BaseHNVModel):
             properties["virtualServer"] = resource
 
         return super(LoadBalancerMux, cls).process_raw_data(raw_data)
+
+
+def setup(**config):
+    """Update the global configurations for the HNV client.
+
+    :param url: The base URL where the agent looks for Network
+        Controller API.
+    :param username: The username required for connecting to the
+        Network Controller API.
+    :param password: The password required for connecting to the
+        Network Controller API.
+    :param https_allow_insecure: Whether to disable the validation
+        of HTTPS certificates.
+    :param https_ca_bundle: The path to a CA_BUNDLE file or directory
+        with certificates of trusted CAs.
+    :param retry_count: Max. number of attempts for fetching content in
+        case of transient errors.
+    :param retry_interval: Interval between attempts in case of transient
+        errors, expressed in seconds.
+    :param http_request_timeout: Number of seconds until network requests
+        stop waiting for a response.
+    """
+    CONFIG.update(config)

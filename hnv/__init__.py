@@ -15,3 +15,14 @@ import pbr.version
 
 __version__ = pbr.version.VersionInfo(
     'hnv').version_string()
+
+CONFIG = {
+    "url": None,
+    "username": None,
+    "password": None,
+    "https_allow_insecure": False,
+    "https_ca_bundle": None,
+    "retry_count": 5,
+    "retry_interval": 1,
+    "http_request_timeout": None,
+}

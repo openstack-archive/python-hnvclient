@@ -21,10 +21,7 @@ import logging as base_logging
 
 from oslo_log import log as oslo_logging
 
-from hnv import config as hnv_conf
-
-
-CONFIG = hnv_conf.CONFIG
+from hnv import CONFIG as hnv_config
 
 
 class SnatchHandler(base_logging.Handler):
@@ -83,15 +80,11 @@ class ConfigPatcher(object):
     This class can be used both as a context manager and as a decorator.
     """
 
-    def __init__(self, key, value, group=None, conf=CONFIG):
-        if group:
-            self._original_value = conf.get(group).get(key)
-        else:
-            self._original_value = conf.get(key)
+    def __init__(self, key, value):
         self._key = key
         self._value = value
-        self._group = group
-        self._config = conf
+        self._original_value = None
+        self._config = hnv_config
 
     def __call__(self, func, *args, **kwargs):
         def _wrapped_f(*args, **kwargs):
@@ -102,10 +95,9 @@ class ConfigPatcher(object):
         return _wrapped_f
 
     def __enter__(self):
-        self._config.set_override(self._key, self._value,
-                                  group=self._group)
+        self._original_value = self._config[self._key]
+        self._config[self._key] = self._value
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._config.set_override(self._key, self._original_value,
-                                  group=self._group)
+        self._config[self._key] = self._original_value
