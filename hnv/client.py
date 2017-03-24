@@ -632,9 +632,9 @@ class IPConfiguration(_BaseHNVModel):
     resource.
     """
 
-    access_controll_list = model.Field(name="access_controll_list",
-                                       key="accessControlList",
-                                       is_required=False)
+    access_control_list = model.Field(name="access_control_list",
+                                      key="accessControlList",
+                                      is_required=False)
     """Indicates a reference to an accessControlList resource that defines
     the ACLs in and out of the IP Configuration."""
 
@@ -952,9 +952,9 @@ class SubNetworks(_BaseHNVModel):
     subnets in the virtual network and must fall in the addressPrefix defined
     in the virtual network."""
 
-    access_controll_list = model.Field(name="access_controll_list",
-                                       key="accessControlList",
-                                       is_required=False)
+    access_control_list = model.Field(name="access_control_list",
+                                      key="accessControlList",
+                                      is_required=False)
     """Indicates a reference to an accessControlLists resource that defines
     the ACLs in and out of the subnet."""
 
