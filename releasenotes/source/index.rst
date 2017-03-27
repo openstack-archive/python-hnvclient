@@ -1,5 +1,5 @@
 ==================
- hnv Release Notes
+ hnvclient Release Notes
 ==================
 
 .. toctree::

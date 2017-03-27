@@ -1,7 +1,7 @@
 HNV Client
 ==========
 
-.. automodule:: hnv.client
+.. automodule:: hnvclient.client
 	:members:
 	:inherited-members:
 .. autoattribute::

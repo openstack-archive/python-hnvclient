@@ -22,11 +22,12 @@ except ImportError:
 
 import requests
 
-from hnv.common import constant
-from hnv.common import exception
-from hnv.common import utils as hnv_utils
-from hnv import CONFIG
-from hnv.tests import utils as test_utils
+
+from hnvclient.common import constant
+from hnvclient.common import exception
+from hnvclient.common import utils as hnv_utils
+from hnvclient import CONFIG
+from hnvclient.tests import utils as test_utils
 
 
 class TestHNVClient(unittest.TestCase):
@@ -39,8 +40,8 @@ class TestHNVClient(unittest.TestCase):
         return hnv_utils._HNVClient(url, username, password, allow_insecure,
                                     ca_bundle)
 
-    @mock.patch("hnv.common.utils._HNVClient._get_headers")
-    @mock.patch("hnv.common.utils._HNVClient._verify_https_request")
+    @mock.patch("hnvclient.common.utils._HNVClient._get_headers")
+    @mock.patch("hnvclient.common.utils._HNVClient._verify_https_request")
     @mock.patch("requests_ntlm.HttpNtlmAuth")
     @mock.patch("requests.Session")
     def test_session(self, mock_get_session, mock_auth, mock_verify,
@@ -73,8 +74,8 @@ class TestHNVClient(unittest.TestCase):
     @mock.patch("time.sleep")
     @mock.patch("json.dumps")
     @mock.patch("requests.compat.urljoin")
-    @mock.patch("hnv.common.utils._HNVClient._session")
-    @mock.patch("hnv.common.utils._HNVClient._get_headers")
+    @mock.patch("hnvclient.common.utils._HNVClient._session")
+    @mock.patch("hnvclient.common.utils._HNVClient._get_headers")
     def _test_http_request(self, mock_headers, mock_session, mock_join,
                            mock_dump, mock_sleep,
                            method, body, response, status_code, if_match):
@@ -99,7 +100,7 @@ class TestHNVClient(unittest.TestCase):
                           {"status_code": status_code})
 
         client = self._get_client()
-        with test_utils.LogSnatcher("hnv.common.utils") as logging:
+        with test_utils.LogSnatcher("hnvclient.common.utils") as logging:
             if isinstance(expected_response, requests.exceptions.SSLError):
                 self.assertRaises(exception.CertificateVerifyFailed,
                                   client._http_request,
@@ -218,7 +219,7 @@ class TestHNVClient(unittest.TestCase):
                                 status_code=500,
                                 if_match=False)
 
-    @mock.patch("hnv.common.utils._HNVClient._http_request")
+    @mock.patch("hnvclient.common.utils._HNVClient._http_request")
     def test_get_resource(self, mock_http_request):
         response = mock.Mock()
         response.json = mock.Mock()
@@ -233,7 +234,7 @@ class TestHNVClient(unittest.TestCase):
         self.assertRaises(exception.ServiceException,
                           client.get_resource, mock.sentinel.path)
 
-    @mock.patch("hnv.common.utils._HNVClient._http_request")
+    @mock.patch("hnvclient.common.utils._HNVClient._http_request")
     def test_update_resource(self, mock_http_request):
         response = mock.Mock()
         response.json = mock.Mock()
@@ -252,7 +253,7 @@ class TestHNVClient(unittest.TestCase):
                           client.update_resource,
                           mock.sentinel.path, mock.sentinel.data)
 
-    @mock.patch("hnv.common.utils._HNVClient._http_request")
+    @mock.patch("hnvclient.common.utils._HNVClient._http_request")
     def test_remove_resource(self, mock_http_request):
         mock_http_request.return_value = mock.sentinel.response
 

@@ -1,6 +1,6 @@
 [run]
 branch = True
-source = hnv
+source = hnvclient
 
 [report]
 ignore_errors = True
