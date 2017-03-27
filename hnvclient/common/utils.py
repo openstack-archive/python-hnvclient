@@ -23,9 +23,9 @@ import requests
 import requests_ntlm
 import six
 
-from hnv.common import constant
-from hnv.common import exception
-from hnv import CONFIG
+from hnvclient.common import constant
+from hnvclient.common import exception
+from hnvclient import CONFIG
 
 LOG = logging.getLogger(__name__)
 
