@@ -23,11 +23,9 @@ except ImportError:
 
 from hnv import client
 from hnv.common import exception
-from hnv import config as hnv_config
+from hnv import CONFIG
 from hnv.tests.fake import fake_response
 from hnv.tests import utils as test_utils
-
-CONFIG = hnv_config.CONFIG
 
 
 class TestBaseHNVModel(unittest.TestCase):
@@ -94,7 +92,7 @@ class TestBaseHNVModel(unittest.TestCase):
         side_effect.append(True if not timeout else False)
         is_ready.side_effect = side_effect
 
-        request_timeout = CONFIG.HNV.retry_interval * loop_count
+        request_timeout = CONFIG["retry_interval"] * loop_count
         request_wait = True if loop_count > 0 else False
 
         if timeout:
@@ -146,7 +144,7 @@ class TestBaseHNVModel(unittest.TestCase):
             side_effect.append(True)
         mock_is_ready.side_effect = side_effect
 
-        request_timeout = CONFIG.HNV.retry_interval * loop_count
+        request_timeout = CONFIG["retry_interval"] * loop_count
         request_wait = True if loop_count > 0 else False
 
         model = client._BaseHNVModel(resource_id="hnv-client",

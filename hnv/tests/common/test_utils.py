@@ -25,10 +25,8 @@ import requests
 from hnv.common import constant
 from hnv.common import exception
 from hnv.common import utils as hnv_utils
-from hnv import config as hnv_config
+from hnv import CONFIG
 from hnv.tests import utils as test_utils
-
-CONFIG = hnv_config.CONFIG
 
 
 class TestHNVClient(unittest.TestCase):
@@ -142,7 +140,7 @@ class TestHNVClient(unittest.TestCase):
             session_request.assert_called_once_with(
                 method=method, url=mock.sentinel.url, headers=headers,
                 data=mock.sentinel.content if body else None,
-                timeout=CONFIG.HNV.http_request_timeout
+                timeout=CONFIG["http_request_timeout"]
             )
         elif len(response) > 1:
             # Note(alexcoman): The first response is an exception
@@ -170,7 +168,7 @@ class TestHNVClient(unittest.TestCase):
 
     def test_http_request_with_connection_error(self):
         response = [requests.ConnectionError(), mock.MagicMock()]
-        with test_utils.ConfigPatcher('retry_count', 1, "HNV"):
+        with test_utils.ConfigPatcher('retry_count', 1):
             self._test_http_request(method=constant.GET,
                                     body=mock.sentinel.body,
                                     response=response,
@@ -179,7 +177,7 @@ class TestHNVClient(unittest.TestCase):
 
     def test_http_request_connection_error(self):
         response = [requests.ConnectionError(), requests.ConnectionError()]
-        with test_utils.ConfigPatcher('retry_count', 1, "HNV"):
+        with test_utils.ConfigPatcher('retry_count', 1):
             self._test_http_request(method=constant.GET,
                                     body=mock.sentinel.body,
                                     response=response,
@@ -189,7 +187,7 @@ class TestHNVClient(unittest.TestCase):
     def test_http_request_ssl_error(self):
         response = [requests.exceptions.SSLError(),
                     requests.exceptions.SSLError()]
-        with test_utils.ConfigPatcher('retry_count', 1, "HNV"):
+        with test_utils.ConfigPatcher('retry_count', 1):
             self._test_http_request(method=constant.GET,
                                     body=mock.sentinel.body,
                                     response=response,

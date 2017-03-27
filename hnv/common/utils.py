@@ -25,10 +25,9 @@ import six
 
 from hnv.common import constant
 from hnv.common import exception
-from hnv import config as hnv_config
+from hnv import CONFIG
 
 LOG = logging.getLogger(__name__)
-CONFIG = hnv_config.CONFIG
 
 
 class _HNVClient(object):
@@ -124,7 +123,7 @@ class _HNVClient(object):
                 response = self._session.request(
                     method=method, url=url, headers=headers,
                     data=json.dumps(body) if body else None,
-                    timeout=CONFIG.HNV.http_request_timeout
+                    timeout=CONFIG["http_request_timeout"]
                 )
                 break
             except (requests.ConnectionError,
@@ -132,12 +131,12 @@ class _HNVClient(object):
                 attemts += 1
                 self._http_session = None
                 LOG.debug("Request failed: %s", exc)
-                if attemts > CONFIG.HNV.retry_count:
+                if attemts > CONFIG["retry_count"]:
                     if isinstance(exc, requests.exceptions.SSLError):
                         raise exception.CertificateVerifyFailed(
                             "HTTPS certificate validation failed.")
                     raise
-                time.sleep(CONFIG.HNV.retry_interval)
+                time.sleep(CONFIG["retry_interval"])
 
         try:
             response.raise_for_status()
