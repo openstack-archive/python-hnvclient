@@ -21,7 +21,7 @@ The Python interface matches the underlying REST API and can be employed in 3rd 
 
 .. code:: python
 
-    >>> from hnv import client
+    >>> from hnvclient import client
     >>> logical_networks = client.LogicalNetworks.get()
     >>> for logical_network in logical_networks:
     ...     print(logical_network.resource_id)
@@ -32,11 +32,11 @@ The Python interface matches the underlying REST API and can be employed in 3rd 
 
     >>> logical_network = client.LogicalNetworks.get(resource_id="cd804db3-df59-4f57-8a7d-11cc3f3c4d98")
     >>> logical_network
-    <hnv.client.LogicalNetworks object at 0x7fcd79419910>
+    <hnvclient.client.LogicalNetworks object at 0x7fcd79419910>
     >>> logical_network.provisioning_state
     u'Succeeded'
     >>> logical_network.subnetworks
-    [<hnv.client.LogicalSubnetworks object at 0x7fcd79419150>]
+    [<hnvclient.client.LogicalSubnetworks object at 0x7fcd79419150>]
     >>> logical_network.subnetworks[0].resource_id
     u'4390e3d8-c527-4534-882f-906c47ffd0bb'
 
@@ -47,8 +47,7 @@ The Python interface matches the underlying REST API and can be employed in 3rd 
     import json
     import sys
 
-    from hnv import config
-    from hnv import client
+    from hnvclient import client
 
 
     def view_logical_networks():
@@ -95,7 +94,7 @@ The Python interface matches the underlying REST API and can be employed in 3rd 
 
     def main():
         """Logical networks sample entry point."""
-        config.CONFIG(sys.argv[1:])
+        client.setup()
         view_logical_networks()
         create_virtual_network()
         view_logical_networks()
