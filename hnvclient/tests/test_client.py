@@ -21,11 +21,11 @@ try:
 except ImportError:
     import mock
 
-from hnv import client
-from hnv.common import exception
-from hnv import CONFIG
-from hnv.tests.fake import fake_response
-from hnv.tests import utils as test_utils
+from hnvclient import client
+from hnvclient.common import exception
+from hnvclient import CONFIG
+from hnvclient.tests.fake import fake_response
+from hnvclient.tests import utils as test_utils
 
 
 class TestBaseHNVModel(unittest.TestCase):
@@ -33,8 +33,8 @@ class TestBaseHNVModel(unittest.TestCase):
     def setUp(self):
         client._BaseHNVModel._endpoint = "{parent_id}/{resource_id}"
 
-    @mock.patch("hnv.client._BaseHNVModel.process_raw_data")
-    @mock.patch("hnv.client._BaseHNVModel._set_fields")
+    @mock.patch("hnvclient.client._BaseHNVModel.process_raw_data")
+    @mock.patch("hnvclient.client._BaseHNVModel._set_fields")
     def test_reset_model(self, mock_set_fields, mock_process):
         resource = client._BaseHNVModel()
 
@@ -46,8 +46,8 @@ class TestBaseHNVModel(unittest.TestCase):
         mock_process.assert_called_once_with(mock.sentinel.response)
         mock_set_fields.assert_called_once_with(mock.sentinel.fields)
 
-    @mock.patch("hnv.client._BaseHNVModel.from_raw_data")
-    @mock.patch("hnv.client._BaseHNVModel._get_client")
+    @mock.patch("hnvclient.client._BaseHNVModel.from_raw_data")
+    @mock.patch("hnvclient.client._BaseHNVModel._get_client")
     def test_get(self, mock_get_client, mock_from_raw_data):
         mock_from_raw_data.return_value = mock.sentinel.resource
         http_client = mock_get_client.return_value = mock.Mock()
@@ -59,8 +59,8 @@ class TestBaseHNVModel(unittest.TestCase):
         get_resource.assert_called_once_with("/hnv-client-test")
         self.assertIs(resource, mock.sentinel.resource)
 
-    @mock.patch("hnv.client._BaseHNVModel.from_raw_data")
-    @mock.patch("hnv.client._BaseHNVModel._get_client")
+    @mock.patch("hnvclient.client._BaseHNVModel.from_raw_data")
+    @mock.patch("hnvclient.client._BaseHNVModel._get_client")
     def test_get_all(self, mock_get_client, mock_from_raw_data):
         mock_from_raw_data.side_effect = [{} for index in range(10)]
 
@@ -74,8 +74,8 @@ class TestBaseHNVModel(unittest.TestCase):
         self.assertEqual(resources, [{} for _ in range(10)])
 
     @mock.patch("time.sleep")
-    @mock.patch("hnv.client._BaseHNVModel._get")
-    @mock.patch("hnv.client._BaseHNVModel._get_client")
+    @mock.patch("hnvclient.client._BaseHNVModel._get")
+    @mock.patch("hnvclient.client._BaseHNVModel._get_client")
     def _test_remove(self, mock_get_client, mock_get, mock_sleep,
                      loop_count, timeout):
         resource = mock.Mock()
@@ -120,11 +120,11 @@ class TestBaseHNVModel(unittest.TestCase):
         return {"properties": {"provisioningState": provisioning_state}}
 
     @mock.patch("time.sleep")
-    @mock.patch("hnv.client._BaseHNVModel._reset_model")
-    @mock.patch("hnv.client._BaseHNVModel.is_ready")
-    @mock.patch("hnv.client._BaseHNVModel.refresh")
-    @mock.patch("hnv.client._BaseHNVModel.dump")
-    @mock.patch("hnv.client._BaseHNVModel._get_client")
+    @mock.patch("hnvclient.client._BaseHNVModel._reset_model")
+    @mock.patch("hnvclient.client._BaseHNVModel.is_ready")
+    @mock.patch("hnvclient.client._BaseHNVModel.refresh")
+    @mock.patch("hnvclient.client._BaseHNVModel.dump")
+    @mock.patch("hnvclient.client._BaseHNVModel._get_client")
     def _test_commit(self, mock_get_client, mock_dump, mock_refresh,
                      mock_is_ready, mock_reset_model, mock_sleep,
                      loop_count, timeout, failed, invalid_response):
@@ -189,8 +189,8 @@ class TestBaseHNVModel(unittest.TestCase):
         self._test_commit(loop_count=1, timeout=False,
                           failed=False, invalid_response=True)
 
-    @mock.patch("hnv.client._BaseHNVModel._reset_model")
-    @mock.patch("hnv.client._BaseHNVModel._get_client")
+    @mock.patch("hnvclient.client._BaseHNVModel._reset_model")
+    @mock.patch("hnvclient.client._BaseHNVModel._get_client")
     def test_refresh(self, mock_get_client, mock_reset_model):
         http_client = mock_get_client.return_value = mock.Mock()
         get_resource = http_client.get_resource = mock.Mock()
@@ -211,7 +211,7 @@ class TestClient(unittest.TestCase):
         self.maxDiff = None
 
     def _test_get_resource(self, model, raw_data):
-        with test_utils.LogSnatcher("hnv.common.model") as logging:
+        with test_utils.LogSnatcher("hnvclient.common.model") as logging:
             model.from_raw_data(raw_data)
         self.assertEqual(logging.output, [])
 

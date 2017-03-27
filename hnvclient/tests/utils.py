@@ -21,7 +21,7 @@ import logging as base_logging
 
 from oslo_log import log as oslo_logging
 
-from hnv import CONFIG as hnv_config
+from hnvclient import CONFIG
 
 
 class SnatchHandler(base_logging.Handler):
@@ -84,7 +84,7 @@ class ConfigPatcher(object):
         self._key = key
         self._value = value
         self._original_value = None
-        self._config = hnv_config
+        self._config = CONFIG
 
     def __call__(self, func, *args, **kwargs):
         def _wrapped_f(*args, **kwargs):

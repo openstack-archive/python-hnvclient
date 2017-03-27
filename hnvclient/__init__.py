@@ -14,7 +14,7 @@ import pbr.version
 
 
 __version__ = pbr.version.VersionInfo(
-    'hnv').version_string()
+    'hnvclient').version_string()
 
 CONFIG = {
     "url": None,
