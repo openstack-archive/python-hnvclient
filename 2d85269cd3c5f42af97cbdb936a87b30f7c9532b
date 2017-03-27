@@ -1,0 +1,8 @@
+Code-Review+2: Alexandru Coman <acoman@cloudbasesolutions.com>
+Workflow+1: Alexandru Coman <acoman@cloudbasesolutions.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Mon, 27 Mar 2017 13:53:52 +0000
+Reviewed-on: https://review.openstack.org/447537
+Project: openstack/python-hnvclient
+Branch: refs/heads/master
